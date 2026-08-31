@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "dev": "nodemon --watch src --watch generated/prisma --ext js,ts,json --exec tsx src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -22,7 +22,11 @@
   "author": "Míriam Souza Leal",
   "license": "MIT",
   "dependencies": {
-    "express": "^5.2.1"
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@eslint/css": "^1.4.0",
@@ -34,6 +38,8 @@
     "eslint-plugin-prettier": "^5.5.6",
     "globals": "^17.11.0",
     "nodemon": "^3.1.14",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "prisma": "^7.10.0",
+    "tsx": "^4.23.13"
   }
 }
