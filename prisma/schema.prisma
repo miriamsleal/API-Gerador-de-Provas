@@ -1,0 +1,30 @@
+// prisma/schema.prisma
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "../generated/prisma"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Papel {
+  PROFESSOR
+  ADMIN
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  foto      String?
+  papel     Papel    @default(PROFESSOR)
+  createdAt DateTime @default(now()) @map("data_criacao")
+  updatedAt DateTime @updatedAt @map("data_atualizacao")
+
+  @@map("users")
+}
