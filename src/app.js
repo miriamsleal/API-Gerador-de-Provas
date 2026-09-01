@@ -62,6 +62,61 @@ app.get("/users", async (req, res) => {
   }
 });
 
+app.get("/subjects", async (req, res) => {
+  try {
+    const materias = await prisma.subject.findMany({
+      include: {
+        professor: {
+          select: { id: true, nome: true, email: true, papel: true },
+        },
+      },
+      orderBy: { id: "asc" },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: materias,
+      total: materias.length,
+    });
+  } catch (error) {
+    console.error("Erro ao buscar matérias:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Erro ao buscar matérias",
+    });
+  }
+});
+
+app.get("/questions", async (req, res) => {
+  try {
+    const questoes = await prisma.question.findMany({
+      include: {
+        disciplina: {
+          select: { id: true, nome: true, ativa: true },
+        },
+        autor: {
+          select: { id: true, nome: true, email: true, papel: true },
+        },
+      },
+      orderBy: { id: "asc" },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: questoes,
+      total: questoes.length,
+    });
+  } catch (error) {
+    console.error("Erro ao buscar questões:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Erro ao buscar questões",
+    });
+  }
+});
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,
