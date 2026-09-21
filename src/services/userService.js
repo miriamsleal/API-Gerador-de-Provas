@@ -1,4 +1,5 @@
 import prisma from "../config/database.js";
+import { ConflictError, NotFoundError } from "../errors/AppError.js";
 
 const publicUserSelect = {
   id: true,
@@ -11,172 +12,152 @@ const publicUserSelect = {
 };
 
 /**
- * Normaliza um e-mail para que comparações e persistência usem o mesmo formato.
- * @param {string} email - E-mail informado na requisição.
- * @returns {string} E-mail sem espaços nas extremidades e em letras minúsculas.
- */
-const normalizeEmail = (email) => email.trim().toLowerCase();
-
-/**
  * Busca todos os usuários no formato público, do mais recente para o mais antigo.
- * @returns {Promise<Object[]>} Lista de usuários sem campos internos.
+ * @returns {Promise<object[]>} Lista de usuários sem campos internos.
  */
-export const getAllUsers = async () => {
+export function getAllUsers() {
   return prisma.user.findMany({
     select: publicUserSelect,
     orderBy: { createdAt: "desc" },
   });
-};
+}
 
 /**
- * Busca um usuário pelo identificador único.
- * @param {number} userId - ID do usuário.
- * @returns {Promise<Object|null>} Usuário encontrado ou `null` quando ele não existe.
+ * Busca um usuário por identificador.
+ * @param {number} userId - ID já validado pelo middleware.
+ * @returns {Promise<object>} Usuário público encontrado.
+ * @throws {NotFoundError} Quando o usuário não existe.
  */
-export const getUserById = async (userId) => {
-  return prisma.user.findUnique({
+export async function getUserById(userId) {
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     select: publicUserSelect,
   });
-};
+
+  if (!user) {
+    throw new NotFoundError(`Usuário com ID ${userId} não encontrado`);
+  }
+
+  return user;
+}
 
 /**
- * Cria um usuário depois de normalizar o e-mail e verificar a sua unicidade.
- * @param {{ nome: string, email: string, papel?: string, foto?: string|null }} userData - Dados recebidos pelo controller.
- * @returns {Promise<{ ok: boolean, data?: Object, reason?: string }>} Resultado da criação ou o motivo do conflito.
+ * Cria um usuário depois de verificar a unicidade do e-mail.
+ * @param {{nome: string, email: string, papel?: "PROFESSOR"|"ADMIN", foto?: string|null}} data - Dados já parseados pelo Zod.
+ * @returns {Promise<object>} Usuário público criado.
+ * @throws {ConflictError} Quando o e-mail já pertence a outro usuário.
  */
-export const createUser = async (userData) => {
-  const email = normalizeEmail(userData.email);
-  const emailOwner = await prisma.user.findUnique({
-    where: { email },
+export async function createUser(data) {
+  const owner = await prisma.user.findUnique({
+    where: { email: data.email },
     select: { id: true },
   });
 
-  if (emailOwner) {
-    return { ok: false, reason: "EMAIL_CONFLICT" };
+  if (owner) {
+    throw new ConflictError("E-mail já cadastrado");
   }
 
   try {
-    const usuario = await prisma.user.create({
+    return await prisma.user.create({
       data: {
-        nome: userData.nome.trim(),
-        email,
-        papel: userData.papel ?? "PROFESSOR",
-        foto: userData.foto?.trim() || null,
+        nome: data.nome,
+        email: data.email,
+        papel: data.papel ?? "PROFESSOR",
+        foto: data.foto ?? null,
       },
       select: publicUserSelect,
     });
-
-    return { ok: true, data: usuario };
   } catch (error) {
-    if (error.code === "P2002") {
-      return { ok: false, reason: "EMAIL_CONFLICT" };
+    if (error?.code === "P2002") {
+      throw new ConflictError("E-mail já cadastrado");
     }
 
     throw error;
   }
-};
+}
 
 /**
  * Atualiza somente os campos enviados para um usuário existente.
- * @param {number} userId - ID do usuário a atualizar.
- * @param {{ nome?: string, email?: string, papel?: string, foto?: string|null }} userData - Campos permitidos no PATCH.
- * @returns {Promise<{ ok: boolean, data?: Object, reason?: string }>} Resultado da atualização, inexistência ou conflito de e-mail.
+ * @param {number} userId - ID já validado pelo middleware.
+ * @param {{nome?: string, email?: string, papel?: "PROFESSOR"|"ADMIN", foto?: string|null}} data - Campos permitidos.
+ * @returns {Promise<object>} Usuário público atualizado.
+ * @throws {NotFoundError} Quando o usuário não existe.
+ * @throws {ConflictError} Quando outro usuário já possui o e-mail.
  */
-export const updateUser = async (userId, userData) => {
-  const usuarioExistente = await prisma.user.findUnique({
+export async function updateUser(userId, data) {
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, email: true },
   });
 
-  if (!usuarioExistente) {
-    return { ok: false, reason: "NOT_FOUND" };
+  if (!user) {
+    throw new NotFoundError(`Usuário com ID ${userId} não encontrado`);
   }
 
-  const data = {};
-
-  if (Object.hasOwn(userData, "nome")) {
-    data.nome = userData.nome.trim();
-  }
-
-  if (Object.hasOwn(userData, "email")) {
-    const email = normalizeEmail(userData.email);
-    const emailOwner = await prisma.user.findUnique({
-      where: { email },
+  if (data.email !== undefined && data.email !== user.email) {
+    const owner = await prisma.user.findUnique({
+      where: { email: data.email },
       select: { id: true },
     });
 
-    if (emailOwner && emailOwner.id !== userId) {
-      return { ok: false, reason: "EMAIL_CONFLICT" };
+    if (owner) {
+      throw new ConflictError("E-mail já cadastrado");
     }
-
-    data.email = email;
-  }
-
-  if (Object.hasOwn(userData, "papel")) {
-    data.papel = userData.papel;
-  }
-
-  if (Object.hasOwn(userData, "foto")) {
-    data.foto = userData.foto?.trim() || null;
   }
 
   try {
-    const usuario = await prisma.user.update({
+    return await prisma.user.update({
       where: { id: userId },
       data,
       select: publicUserSelect,
     });
-
-    return { ok: true, data: usuario };
   } catch (error) {
-    if (error.code === "P2002") {
-      return { ok: false, reason: "EMAIL_CONFLICT" };
+    if (error?.code === "P2002") {
+      throw new ConflictError("E-mail já cadastrado");
     }
 
     throw error;
   }
-};
+}
 
 /**
  * Remove um usuário que não possua matérias nem questões vinculadas.
- * @param {number} userId - ID do usuário a remover.
- * @returns {Promise<{ ok: boolean, data?: Object, reason?: string }>} Usuário removido ou o motivo que impede a remoção.
+ * @param {number} userId - ID já validado pelo middleware.
+ * @returns {Promise<object>} Usuário público removido.
+ * @throws {NotFoundError} Quando o usuário não existe.
+ * @throws {ConflictError} Quando há matérias ou questões vinculadas.
  */
-export const deleteUser = async (userId) => {
-  const usuarioExistente = await prisma.user.findUnique({
+export async function deleteUser(userId) {
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
-      ...publicUserSelect,
-      _count: {
-        select: { subjects: true, questions: true },
-      },
+      id: true,
+      _count: { select: { subjects: true, questions: true } },
     },
   });
 
-  if (!usuarioExistente) {
-    return { ok: false, reason: "NOT_FOUND" };
+  if (!user) {
+    throw new NotFoundError(`Usuário com ID ${userId} não encontrado`);
   }
 
-  if (
-    usuarioExistente._count.subjects > 0 ||
-    usuarioExistente._count.questions > 0
-  ) {
-    return { ok: false, reason: "USER_IN_USE" };
+  if (user._count.subjects > 0 || user._count.questions > 0) {
+    throw new ConflictError("Usuário possui matérias ou questões vinculadas");
   }
 
   try {
-    const usuario = await prisma.user.delete({
+    return await prisma.user.delete({
       where: { id: userId },
       select: publicUserSelect,
     });
-
-    return { ok: true, data: usuario };
   } catch (error) {
-    if (error.code === "P2003" || error.code === "P2014") {
-      return { ok: false, reason: "USER_IN_USE" };
+    if (error?.code === "P2003" || error?.code === "P2014") {
+      throw new ConflictError("Usuário possui matérias ou questões vinculadas");
+    }
+
+    if (error?.code === "P2025") {
+      throw new NotFoundError(`Usuário com ID ${userId} não encontrado`);
     }
 
     throw error;
   }
-};
+}

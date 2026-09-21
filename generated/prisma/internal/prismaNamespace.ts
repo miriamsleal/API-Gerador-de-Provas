@@ -710,8 +710,8 @@ export const QuestionScalarFieldEnum = {
   enunciado: 'enunciado',
   dificuldade: 'dificuldade',
   respostaCorreta: 'respostaCorreta',
-  disciplinaId: 'disciplinaId',
-  autorId: 'autorId',
+  subjectId: 'subjectId',
+  authorId: 'authorId',
   ativa: 'ativa',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

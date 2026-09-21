@@ -289,7 +289,7 @@ export type SubjectCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   professor: Prisma.UserCreateNestedOneWithoutSubjectsInput
-  questions?: Prisma.QuestionCreateNestedManyWithoutDisciplinaInput
+  questions?: Prisma.QuestionCreateNestedManyWithoutSubjectInput
 }
 
 export type SubjectUncheckedCreateInput = {
@@ -299,7 +299,7 @@ export type SubjectUncheckedCreateInput = {
   professorId: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutDisciplinaInput
+  questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutSubjectInput
 }
 
 export type SubjectUpdateInput = {
@@ -308,7 +308,7 @@ export type SubjectUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   professor?: Prisma.UserUpdateOneRequiredWithoutSubjectsNestedInput
-  questions?: Prisma.QuestionUpdateManyWithoutDisciplinaNestedInput
+  questions?: Prisma.QuestionUpdateManyWithoutSubjectNestedInput
 }
 
 export type SubjectUncheckedUpdateInput = {
@@ -318,7 +318,7 @@ export type SubjectUncheckedUpdateInput = {
   professorId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  questions?: Prisma.QuestionUncheckedUpdateManyWithoutDisciplinaNestedInput
+  questions?: Prisma.QuestionUncheckedUpdateManyWithoutSubjectNestedInput
 }
 
 export type SubjectCreateManyInput = {
@@ -463,7 +463,7 @@ export type SubjectCreateWithoutProfessorInput = {
   ativa?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  questions?: Prisma.QuestionCreateNestedManyWithoutDisciplinaInput
+  questions?: Prisma.QuestionCreateNestedManyWithoutSubjectInput
 }
 
 export type SubjectUncheckedCreateWithoutProfessorInput = {
@@ -472,7 +472,7 @@ export type SubjectUncheckedCreateWithoutProfessorInput = {
   ativa?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutDisciplinaInput
+  questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutSubjectInput
 }
 
 export type SubjectCreateOrConnectWithoutProfessorInput = {
@@ -576,7 +576,7 @@ export type SubjectUpdateWithoutProfessorInput = {
   ativa?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  questions?: Prisma.QuestionUpdateManyWithoutDisciplinaNestedInput
+  questions?: Prisma.QuestionUpdateManyWithoutSubjectNestedInput
 }
 
 export type SubjectUncheckedUpdateWithoutProfessorInput = {
@@ -585,7 +585,7 @@ export type SubjectUncheckedUpdateWithoutProfessorInput = {
   ativa?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  questions?: Prisma.QuestionUncheckedUpdateManyWithoutDisciplinaNestedInput
+  questions?: Prisma.QuestionUncheckedUpdateManyWithoutSubjectNestedInput
 }
 
 export type SubjectUncheckedUpdateManyWithoutProfessorInput = {

@@ -299,7 +299,7 @@ export type UserCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   subjects?: Prisma.SubjectCreateNestedManyWithoutProfessorInput
-  questions?: Prisma.QuestionCreateNestedManyWithoutAutorInput
+  questions?: Prisma.QuestionCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -311,7 +311,7 @@ export type UserUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   subjects?: Prisma.SubjectUncheckedCreateNestedManyWithoutProfessorInput
-  questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutAutorInput
+  questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUpdateInput = {
@@ -322,7 +322,7 @@ export type UserUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subjects?: Prisma.SubjectUpdateManyWithoutProfessorNestedInput
-  questions?: Prisma.QuestionUpdateManyWithoutAutorNestedInput
+  questions?: Prisma.QuestionUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -334,7 +334,7 @@ export type UserUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subjects?: Prisma.SubjectUncheckedUpdateManyWithoutProfessorNestedInput
-  questions?: Prisma.QuestionUncheckedUpdateManyWithoutAutorNestedInput
+  questions?: Prisma.QuestionUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -468,7 +468,7 @@ export type UserCreateWithoutSubjectsInput = {
   papel?: $Enums.Papel
   createdAt?: Date | string
   updatedAt?: Date | string
-  questions?: Prisma.QuestionCreateNestedManyWithoutAutorInput
+  questions?: Prisma.QuestionCreateNestedManyWithoutAuthorInput
 }
 
 export type UserUncheckedCreateWithoutSubjectsInput = {
@@ -479,7 +479,7 @@ export type UserUncheckedCreateWithoutSubjectsInput = {
   papel?: $Enums.Papel
   createdAt?: Date | string
   updatedAt?: Date | string
-  questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutAutorInput
+  questions?: Prisma.QuestionUncheckedCreateNestedManyWithoutAuthorInput
 }
 
 export type UserCreateOrConnectWithoutSubjectsInput = {
@@ -505,7 +505,7 @@ export type UserUpdateWithoutSubjectsInput = {
   papel?: Prisma.EnumPapelFieldUpdateOperationsInput | $Enums.Papel
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  questions?: Prisma.QuestionUpdateManyWithoutAutorNestedInput
+  questions?: Prisma.QuestionUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSubjectsInput = {
@@ -516,7 +516,7 @@ export type UserUncheckedUpdateWithoutSubjectsInput = {
   papel?: Prisma.EnumPapelFieldUpdateOperationsInput | $Enums.Papel
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  questions?: Prisma.QuestionUncheckedUpdateManyWithoutAutorNestedInput
+  questions?: Prisma.QuestionUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
 export type UserCreateWithoutQuestionsInput = {

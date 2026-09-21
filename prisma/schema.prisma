@@ -51,14 +51,14 @@ model Question {
   enunciado       String
   dificuldade     Int
   respostaCorreta String?  @map("resposta_correta")
-  disciplinaId    Int      @map("disciplina_id")
-  autorId         Int      @map("autor_id")
+  subjectId       Int      @map("disciplina_id")
+  authorId        Int      @map("autor_id")
   ativa           Boolean  @default(true)
   createdAt       DateTime @default(now()) @map("data_criacao")
   updatedAt       DateTime @updatedAt @map("data_atualizacao")
 
-  disciplina Subject @relation(fields: [disciplinaId], references: [id])
-  autor      User    @relation(fields: [autorId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+  author  User    @relation(fields: [authorId], references: [id])
 
   @@map("questions")
 }
