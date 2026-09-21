@@ -1,301 +1,93 @@
 import * as questionService from "../services/questionService.js";
 
-const allowedPatchFields = [
-  "enunciado",
-  "dificuldade",
-  "respostaCorreta",
-  "ativa",
-  "disciplinaId",
-  "autorId",
-];
-
 /**
- * Converte um valor em um ID inteiro positivo.
- * @param {unknown} value 
- * @returns {number|null} 
+ * Cria uma questão a partir de dados já validados pelo middleware.
+ * @param {import("express").Request} req - Requisição HTTP.
+ * @param {import("express").Response} res - Resposta HTTP.
+ * @param {import("express").NextFunction} next - Encaminhador de erros.
+ * @returns {Promise<void>} Resposta de criação ou encaminhamento de erro.
  */
-function toPositiveInt(value) {
-  const number = Number(value);
-  return Number.isInteger(number) && number > 0 ? number : null;
-}
-
-/**
- * Verifica se o corpo do PATCH contém ao menos um campo atualizável.
- * @param {Object} body 
- * @returns {boolean} 
- */
-function hasAllowedPatchField(body) {
-  return allowedPatchFields.some((field) => Object.hasOwn(body, field));
-}
-
-/**
- * Identifica valores inválidos nos campos de uma questão.
- * @param {Object} body 
- * @returns {boolean} 
- */
-function hasInvalidQuestionFields({
-  enunciado,
-  dificuldade,
-  respostaCorreta,
-  ativa,
-  disciplinaId,
-  autorId,
-}) {
-  const dificuldadeInvalida =
-    dificuldade !== undefined && ![1, 2, 3].includes(Number(dificuldade));
-
-  return (
-    (enunciado !== undefined &&
-      (typeof enunciado !== "string" || !enunciado.trim())) ||
-    dificuldadeInvalida ||
-    (respostaCorreta !== undefined &&
-      respostaCorreta !== null &&
-      typeof respostaCorreta !== "string") ||
-    (ativa !== undefined && typeof ativa !== "boolean") ||
-    (disciplinaId !== undefined && toPositiveInt(disciplinaId) === null) ||
-    (autorId !== undefined && toPositiveInt(autorId) === null)
-  );
-}
-
-/**
- * Normaliza os IDs e a dificuldade presentes no corpo da requisição.
- * @param {Object} body 
- * @returns {Object} 
- */
-function normalizeBody(body) {
-  const payload = { ...body };
-
-  if (Object.hasOwn(payload, "dificuldade")) {
-    payload.dificuldade = Number(payload.dificuldade);
-  }
-
-  if (Object.hasOwn(payload, "disciplinaId")) {
-    payload.disciplinaId = toPositiveInt(payload.disciplinaId);
-  }
-
-  if (Object.hasOwn(payload, "autorId")) {
-    payload.autorId = toPositiveInt(payload.autorId);
-  }
-
-  return payload;
-}
-
-/**
- * Valida e cria uma questão vinculada a uma matéria e a um autor.
- * @param {Object} req 
- * @param {Object} res 
- * @returns {Promise<Object>} 
- */
-export const create = async (req, res) => {
+export async function create(req, res, next) {
   try {
-    const { enunciado, dificuldade, disciplinaId, autorId } = req.body;
-
-    if (
-      typeof enunciado !== "string" ||
-      !enunciado.trim() ||
-      dificuldade === undefined ||
-      disciplinaId === undefined ||
-      autorId === undefined ||
-      hasInvalidQuestionFields(req.body)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Enunciado, dificuldade (1 a 3), disciplinaId e autorId são obrigatórios",
-      });
-    }
-
-    const result = await questionService.createQuestion(normalizeBody(req.body));
-
-    if (!result.ok && result.reason === "SUBJECT_NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: "Matéria informada não encontrada",
-      });
-    }
-
-    if (!result.ok && result.reason === "AUTHOR_NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: "Autor informado não encontrado",
-      });
-    }
-
-    return res.status(201).json({
+    const data = await questionService.createQuestion(req.body);
+    res.status(201).json({
       success: true,
       message: "Questão criada com sucesso",
-      data: result.data,
+      data,
     });
   } catch (error) {
-    console.error("Erro ao criar questão:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao criar questão",
-    });
+    next(error);
   }
-};
+}
 
 /**
- * Lista as questões com a matéria e o autor.
- * @param {Object} _req 
- * @param {Object} res 
- * @returns {Promise<Object>} 
+ * Lista todas as questões públicas.
+ * @param {import("express").Request} _req - Requisição HTTP não utilizada.
+ * @param {import("express").Response} res - Resposta HTTP.
+ * @param {import("express").NextFunction} next - Encaminhador de erros.
+ * @returns {Promise<void>} Resposta de listagem ou encaminhamento de erro.
  */
-export const getAll = async (_req, res) => {
+export async function getAll(_req, res, next) {
   try {
-    const questoes = await questionService.getAllQuestions();
-
-    return res.status(200).json({
-      success: true,
-      data: questoes,
-      total: questoes.length,
-    });
+    const data = await questionService.getAllQuestions();
+    res.status(200).json({ success: true, data, total: data.length });
   } catch (error) {
-    console.error("Erro ao listar questões:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao listar questões",
-    });
+    next(error);
   }
-};
+}
 
 /**
- * Busca uma questão específica pelo ID.
- * @param {Object} req 
- * @param {Object} res 
- * @returns {Promise<Object>} 
+ * Busca uma questão pelo ID já convertido pelo schema.
+ * @param {import("express").Request} req - Requisição HTTP.
+ * @param {import("express").Response} res - Resposta HTTP.
+ * @param {import("express").NextFunction} next - Encaminhador de erros.
+ * @returns {Promise<void>} Resposta de busca ou encaminhamento de erro.
  */
-export const getById = async (req, res) => {
+export async function getById(req, res, next) {
   try {
-    const questionId = toPositiveInt(req.params.id);
-
-    if (!questionId) {
-      return res.status(400).json({
-        success: false,
-        message: "ID inválido. Deve ser um número inteiro positivo",
-      });
-    }
-
-    const questao = await questionService.getQuestionById(questionId);
-
-    if (!questao) {
-      return res.status(404).json({
-        success: false,
-        message: `Questão com ID ${questionId} não encontrada`,
-      });
-    }
-
-    return res.status(200).json({ success: true, data: questao });
+    const data = await questionService.getQuestionById(req.params.id);
+    res.status(200).json({ success: true, data });
   } catch (error) {
-    console.error("Erro ao buscar questão:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao buscar questão",
-    });
+    next(error);
   }
-};
+}
 
 /**
- * Atualiza parcialmente uma questão existente.
- * @param {Object} req 
- * @param {Object} res 
- * @returns {Promise<Object>} 
+ * Atualiza parcialmente uma questão com dados validados.
+ * @param {import("express").Request} req - Requisição HTTP.
+ * @param {import("express").Response} res - Resposta HTTP.
+ * @param {import("express").NextFunction} next - Encaminhador de erros.
+ * @returns {Promise<void>} Resposta de atualização ou encaminhamento de erro.
  */
-export const update = async (req, res) => {
+export async function update(req, res, next) {
   try {
-    const questionId = toPositiveInt(req.params.id);
-
-    if (!questionId) {
-      return res.status(400).json({
-        success: false,
-        message: "ID inválido. Deve ser um número inteiro positivo",
-      });
-    }
-
-    if (!hasAllowedPatchField(req.body) || hasInvalidQuestionFields(req.body)) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Envie ao menos um campo válido: enunciado, dificuldade, respostaCorreta, ativa, disciplinaId ou autorId",
-      });
-    }
-
-    const result = await questionService.updateQuestion(
-      questionId,
-      normalizeBody(req.body),
-    );
-
-    if (!result.ok && result.reason === "NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: `Questão com ID ${questionId} não encontrada`,
-      });
-    }
-
-    if (!result.ok && result.reason === "SUBJECT_NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: "Matéria informada não encontrada",
-      });
-    }
-
-    if (!result.ok && result.reason === "AUTHOR_NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: "Autor informado não encontrado",
-      });
-    }
-
-    return res.status(200).json({
+    const data = await questionService.updateQuestion(req.params.id, req.body);
+    res.status(200).json({
       success: true,
       message: "Questão atualizada com sucesso",
-      data: result.data,
+      data,
     });
   } catch (error) {
-    console.error("Erro ao atualizar questão:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao atualizar questão",
-    });
+    next(error);
   }
-};
+}
 
 /**
  * Remove uma questão existente.
- * @param {Object} req 
- * @param {Object} res 
- * @returns {Promise<Object>} 
+ * @param {import("express").Request} req - Requisição HTTP.
+ * @param {import("express").Response} res - Resposta HTTP.
+ * @param {import("express").NextFunction} next - Encaminhador de erros.
+ * @returns {Promise<void>} Resposta de remoção ou encaminhamento de erro.
  */
-export const remove = async (req, res) => {
+export async function remove(req, res, next) {
   try {
-    const questionId = toPositiveInt(req.params.id);
-
-    if (!questionId) {
-      return res.status(400).json({
-        success: false,
-        message: "ID inválido. Deve ser um número inteiro positivo",
-      });
-    }
-
-    const result = await questionService.deleteQuestion(questionId);
-
-    if (!result.ok && result.reason === "NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: `Questão com ID ${questionId} não encontrada`,
-      });
-    }
-
-    return res.status(200).json({
+    const data = await questionService.deleteQuestion(req.params.id);
+    res.status(200).json({
       success: true,
       message: "Questão removida com sucesso",
-      data: result.data,
+      data,
     });
   } catch (error) {
-    console.error("Erro ao remover questão:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao remover questão",
-    });
+    next(error);
   }
-};
+}

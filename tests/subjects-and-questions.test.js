@@ -3,310 +3,478 @@ import request from "supertest";
 import app from "../src/app.js";
 import prisma from "../src/config/database.js";
 
-const createdQuestionIds = [];
-const createdSubjectIds = [];
-const createdUserIds = [];
+const userIds = [];
+const subjectIds = [];
+const questionIds = [];
 
 /**
- * Gera um e-mail único para evitar colisões entre execuções.
- * @param {string} label 
- * @returns {string} 
+ * Gera e-mail único para cada fixture de teste.
+ * @param {string} label - Identificador do cenário que cria o e-mail.
+ * @returns {string} E-mail único para um usuário temporário.
  */
-function uniqueEmail(label) {
-  return `aula05-${label}-${Date.now()}-${Math.random()}@example.com`;
+function email(label) {
+  return `aula06-${label}-${Date.now()}-${Math.random()}@exemplo.com`;
 }
 
 /**
- * Cria um usuário pela API e registra o ID para limpeza.
- * @param {Object} [overrides={}] 
- * @returns {Promise<Object>} 
+ * Cria um usuário válido e registra seu ID para limpeza.
+ * @param {object} [overrides={}] - Campos que substituem os dados padrão.
+ * @returns {Promise<object>} Usuário criado pela API.
  */
 async function createUser(overrides = {}) {
   const response = await request(app)
     .post("/users")
     .send({
-      nome: "Prof. Teste",
-      email: uniqueEmail("rel"),
+      nome: "Professor de teste",
+      email: email("professor"),
       ...overrides,
     });
 
-  if (response.status === 201) {
-    createdUserIds.push(response.body.data.id);
-  }
-
-  return response;
+  expect(response.status).toBe(201);
+  userIds.push(response.body.data.id);
+  return response.body.data;
 }
 
 /**
- * Cria uma matéria pela API e registra o ID para limpeza.
- * @param {number} professorId 
- * @param {Object} [overrides={}] 
- * @returns {Promise<Object>} 
+ * Cria uma matéria válida e registra seu ID para limpeza.
+ * @param {number} professorId - Professor responsável pela matéria.
+ * @param {object} [overrides={}] - Campos que substituem os dados padrão.
+ * @returns {Promise<object>} Matéria criada pela API.
  */
 async function createSubject(professorId, overrides = {}) {
   const response = await request(app)
     .post("/subjects")
-    .send({
-      nome: "Matéria de teste",
-      professorId,
-      ...overrides,
-    });
+    .send({ nome: "Programação Web", professorId, ...overrides });
 
-  if (response.status === 201) {
-    createdSubjectIds.push(response.body.data.id);
-  }
-
-  return response;
+  expect(response.status).toBe(201);
+  subjectIds.push(response.body.data.id);
+  return response.body.data;
 }
 
 /**
- * Cria uma questão pela API e registra o ID para limpeza.
- * @param {number} disciplinaId 
- * @param {number} autorId 
- * @param {Object} [overrides={}] 
- * @returns {Promise<Object>} 
+ * Cria uma questão válida e registra seu ID para limpeza.
+ * @param {number} subjectId - Matéria associada à questão.
+ * @param {number} authorId - Autor da questão.
+ * @param {object} [overrides={}] - Campos que substituem os dados padrão.
+ * @returns {Promise<object>} Questão criada pela API.
  */
-async function createQuestion(disciplinaId, autorId, overrides = {}) {
+async function createQuestion(subjectId, authorId, overrides = {}) {
   const response = await request(app)
     .post("/questions")
     .send({
-      enunciado: "Questão de teste",
+      enunciado: "O que é uma API REST?",
       dificuldade: 2,
-      respostaCorreta: "Resposta",
-      disciplinaId,
-      autorId,
+      respostaCorreta: "Uma API baseada nas restrições de REST.",
+      subjectId,
+      authorId,
       ...overrides,
     });
 
-  if (response.status === 201) {
-    createdQuestionIds.push(response.body.data.id);
-  }
-
-  return response;
+  expect(response.status).toBe(201);
+  questionIds.push(response.body.data.id);
+  return response.body.data;
 }
 
+/**
+ * Confere o formato comum de uma resposta de erro.
+ * @param {import("supertest").Response} response - Resposta HTTP recebida.
+ * @param {number} status - Status HTTP esperado.
+ * @param {string} code - Código de erro esperado.
+ * @returns {void}
+ */
+function expectApiError(response, status, code) {
+  expect(response.status).toBe(status);
+  expect(response.body.success).toBe(false);
+  expect(response.body.error.code).toBe(code);
+  expect(response.body.timestamp).toEqual(expect.any(String));
+  expect(response.body.path).toEqual(expect.any(String));
+}
+
+/**
+ * Reserva um ID realmente inexistente criando e removendo uma fixture sem vínculos.
+ * @returns {Promise<number>} ID que não pertence a outro usuário.
+ */
+async function missingUserId() {
+  const user = await createUser();
+  await prisma.user.delete({ where: { id: user.id } });
+  return user.id;
+}
+
+/** Remove fixtures na ordem questão → matéria → usuário. */
 afterEach(async () => {
-  if (createdQuestionIds.length > 0) {
-    await prisma.question.deleteMany({
-      where: { id: { in: createdQuestionIds.splice(0) } },
-    });
-  }
-
-  if (createdSubjectIds.length > 0) {
-    await prisma.subject.deleteMany({
-      where: { id: { in: createdSubjectIds.splice(0) } },
-    });
-  }
-
-  if (createdUserIds.length > 0) {
-    await prisma.user.deleteMany({
-      where: { id: { in: createdUserIds.splice(0) } },
-    });
-  }
+  await prisma.question.deleteMany({
+    where: { id: { in: questionIds.splice(0) } },
+  });
+  await prisma.subject.deleteMany({
+    where: { id: { in: subjectIds.splice(0) } },
+  });
+  await prisma.user.deleteMany({ where: { id: { in: userIds.splice(0) } } });
 });
 
-describe("Subject API", () => {
-  it("cria, lista e busca matérias", async () => {
-    const professor = await createUser();
-    const created = await createSubject(professor.body.data.id);
+describe("Subject API com validação", () => {
+  it.each([
+    { nome: "x".repeat(101) },
+    { nome: null },
+    { professorId: 0 },
+    { professorId: true },
+    { professorId: [1] },
+    { professorId: 2147483648 },
+    { ativa: "false" },
+    { campoExtra: true },
+  ])(
+    "rejeita campo isolado em POST e PATCH de matéria: %j",
+    async (invalid) => {
+      const professor = await createUser();
+      const subject = await createSubject(professor.id);
+      const post = await request(app)
+        .post("/subjects")
+        .send({
+          nome: "Matéria válida",
+          professorId: professor.id,
+          ...invalid,
+        });
+      if (post.status === 201) subjectIds.push(post.body.data.id);
+      const patch = await request(app)
+        .patch(`/subjects/${subject.id}`)
+        .send(invalid);
+      expectApiError(post, 400, "VALIDATION_ERROR");
+      expectApiError(patch, 400, "VALIDATION_ERROR");
+    },
+  );
 
-    expect(created.status).toBe(201);
-    expect(created.body.success).toBe(true);
-    expect(created.body.data.professor.id).toBe(professor.body.data.id);
+  it.each(["get", "patch", "delete"])(
+    "valida parâmetros e ausência de matéria em %s",
+    async (method) => {
+      const client = request(app);
+      const professor = await createUser();
+      const subject = await createSubject(professor.id);
+      await prisma.subject.delete({ where: { id: subject.id } });
+      for (const id of ["abc", "0", "-1", "1.5", "2147483648"]) {
+        const invalid = await client[method](`/subjects/${id}`).send(
+          method === "patch" ? { nome: "Novo nome" } : undefined,
+        );
+        expectApiError(invalid, 400, "VALIDATION_ERROR");
+      }
+      const missing = await client[method](`/subjects/${subject.id}`).send(
+        method === "patch" ? { nome: "Novo nome" } : undefined,
+      );
+      expectApiError(missing, 404, "NOT_FOUND");
+    },
+  );
+
+  it("aceita limites, professor em texto decimal e ativa false", async () => {
+    const professor = await createUser();
+    const subject = await createSubject(String(professor.id), {
+      nome: "x".repeat(100),
+      ativa: false,
+    });
+    expect(subject.nome).toHaveLength(100);
+    expect(subject.ativa).toBe(false);
+  });
+  it("rejeita corpo inválido, campo extra e parâmetro inválido", async () => {
+    const invalidBody = await request(app).post("/subjects").send({
+      nome: " ",
+      professorId: "invalido",
+      inesperado: true,
+    });
+    const invalidId = await request(app).get("/subjects/abc");
+
+    expectApiError(invalidBody, 400, "VALIDATION_ERROR");
+    expect(invalidBody.body.error.details.length).toBeGreaterThan(1);
+    expectApiError(invalidId, 400, "VALIDATION_ERROR");
+  });
+
+  it("retorna erro padronizado quando o professor não existe", async () => {
+    const response = await request(app)
+      .post("/subjects")
+      .send({
+        nome: "Matéria sem professor",
+        professorId: await missingUserId(),
+      });
+
+    expectApiError(response, 404, "NOT_FOUND");
+  });
+
+  it("cria, lista e busca uma matéria com professor", async () => {
+    const professor = await createUser();
+    const subject = await createSubject(professor.id);
 
     const list = await request(app).get("/subjects");
+    const found = await request(app).get(`/subjects/${subject.id}`);
 
     expect(list.status).toBe(200);
-    expect(Array.isArray(list.body.data)).toBe(true);
     expect(list.body.total).toBe(list.body.data.length);
-
-    const found = await request(app).get(`/subjects/${created.body.data.id}`);
-
+    expect(list.body.data.some((item) => item.id === subject.id)).toBe(true);
     expect(found.status).toBe(200);
-    expect(found.body.data.id).toBe(created.body.data.id);
+    expect(found.body.data.professor.id).toBe(professor.id);
   });
 
-  it("rejeita ID inválido e corpo inválido", async () => {
+  it("transforma nome, preserva campos e valida professor na atualização", async () => {
     const professor = await createUser();
+    const subject = await createSubject(professor.id, { ativa: true });
 
-    const invalidId = await request(app).get("/subjects/abc");
-    const invalidBody = await request(app)
-      .post("/subjects")
-      .send({ professorId: professor.body.data.id });
+    const updated = await request(app)
+      .patch(`/subjects/${subject.id}`)
+      .send({ nome: "  Banco de Dados  " });
+    const missingProfessor = await request(app)
+      .patch(`/subjects/${subject.id}`)
+      .send({ professorId: await missingUserId() });
 
-    expect(invalidId.status).toBe(400);
-    expect(invalidBody.status).toBe(400);
+    expect(updated.status).toBe(200);
+    expect(updated.body.data.nome).toBe("Banco de Dados");
+    expect(updated.body.data.ativa).toBe(true);
+    expect(updated.body.data.professor.id).toBe(professor.id);
+    expectApiError(missingProfessor, 404, "NOT_FOUND");
   });
 
-  it("retorna 404 para professor inexistente e matéria inexistente", async () => {
-    const semProfessor = await request(app)
-      .post("/subjects")
-      .send({ nome: "Sem dono", professorId: 999999999 });
-    const missing = await request(app).get("/subjects/999999999");
-
-    expect(semProfessor.status).toBe(404);
-    expect(missing.status).toBe(404);
-  });
-
-  it("atualiza somente os campos enviados", async () => {
+  it("rejeita PATCH vazio e campos não permitidos", async () => {
     const professor = await createUser();
-    const created = await createSubject(professor.body.data.id, {
-      nome: "Nome original",
-    });
+    const subject = await createSubject(professor.id);
 
-    const response = await request(app)
-      .patch(`/subjects/${created.body.data.id}`)
-      .send({ nome: "Nome atualizado" });
+    const empty = await request(app).patch(`/subjects/${subject.id}`).send({});
+    const extra = await request(app)
+      .patch(`/subjects/${subject.id}`)
+      .send({ inesperado: true });
 
-    expect(response.status).toBe(200);
-    expect(response.body.data.nome).toBe("Nome atualizado");
-    expect(response.body.data.ativa).toBe(created.body.data.ativa);
-    expect(response.body.data.professorId).toBe(professor.body.data.id);
+    expectApiError(empty, 400, "VALIDATION_ERROR");
+    expectApiError(extra, 400, "VALIDATION_ERROR");
   });
 
-  it("rejeita PATCH vazio", async () => {
+  it("remove matéria sem questões e padroniza a ausência posterior", async () => {
     const professor = await createUser();
-    const created = await createSubject(professor.body.data.id);
+    const subject = await createSubject(professor.id);
 
-    const response = await request(app)
-      .patch(`/subjects/${created.body.data.id}`)
-      .send({});
-
-    expect(response.status).toBe(400);
-  });
-
-  it("remove uma matéria sem questões", async () => {
-    const professor = await createUser();
-    const created = await createSubject(professor.body.data.id);
-    const subjectId = created.body.data.id;
-
-    const removed = await request(app).delete(`/subjects/${subjectId}`);
-    const found = await request(app).get(`/subjects/${subjectId}`);
+    const removed = await request(app).delete(`/subjects/${subject.id}`);
+    const found = await request(app).get(`/subjects/${subject.id}`);
 
     expect(removed.status).toBe(200);
-    expect(removed.body.data.id).toBe(subjectId);
-    expect(found.status).toBe(404);
-
-    createdSubjectIds.splice(createdSubjectIds.indexOf(subjectId), 1);
+    expect(removed.body.data.id).toBe(subject.id);
+    expectApiError(found, 404, "NOT_FOUND");
   });
 
   it("impede remover matéria com questão vinculada", async () => {
     const professor = await createUser();
-    const subject = await createSubject(professor.body.data.id);
-    await createQuestion(subject.body.data.id, professor.body.data.id);
+    const subject = await createSubject(professor.id);
+    await createQuestion(subject.id, professor.id);
 
-    const response = await request(app).delete(
-      `/subjects/${subject.body.data.id}`,
-    );
+    const response = await request(app).delete(`/subjects/${subject.id}`);
 
-    expect(response.status).toBe(409);
-    expect(response.body.message).toContain("vinculadas");
+    expectApiError(response, 409, "CONFLICT");
   });
 });
 
-describe("Question API", () => {
-  it("cria, lista e busca questões", async () => {
-    const professor = await createUser();
-    const subject = await createSubject(professor.body.data.id);
-    const created = await createQuestion(
-      subject.body.data.id,
-      professor.body.data.id,
-    );
+describe("Question API com validação", () => {
+  it.each([
+    { enunciado: "  " },
+    { enunciado: "x".repeat(501) },
+    { dificuldade: 0 },
+    { dificuldade: 4 },
+    { dificuldade: 1.5 },
+    { dificuldade: true },
+    { dificuldade: [1] },
+    { respostaCorreta: "  " },
+    { respostaCorreta: "x".repeat(501) },
+    { subjectId: 0 },
+    { authorId: true },
+    { authorId: [1] },
+    { subjectId: 2147483648 },
+    { ativa: "false" },
+    { campoExtra: true },
+  ])(
+    "rejeita campo isolado em POST e PATCH de questão: %j",
+    async (invalid) => {
+      const author = await createUser();
+      const subject = await createSubject(author.id);
+      const question = await createQuestion(subject.id, author.id);
+      const post = await request(app)
+        .post("/questions")
+        .send({
+          enunciado: "Questão válida",
+          dificuldade: 2,
+          subjectId: subject.id,
+          authorId: author.id,
+          ...invalid,
+        });
+      if (post.status === 201) questionIds.push(post.body.data.id);
+      const patch = await request(app)
+        .patch(`/questions/${question.id}`)
+        .send(invalid);
+      expectApiError(post, 400, "VALIDATION_ERROR");
+      expectApiError(patch, 400, "VALIDATION_ERROR");
+    },
+  );
 
-    expect(created.status).toBe(201);
-    expect(created.body.data.disciplina.id).toBe(subject.body.data.id);
-    expect(created.body.data.autor.id).toBe(professor.body.data.id);
+  it.each(["get", "patch", "delete"])(
+    "valida ID de questão em %s",
+    async (method) => {
+      const client = request(app);
+      for (const id of ["abc", "0", "-1", "1.5", "2147483648"]) {
+        const response = await client[method](`/questions/${id}`).send(
+          method === "patch" ? { dificuldade: 2 } : undefined,
+        );
+        expectApiError(response, 400, "VALIDATION_ERROR");
+      }
+    },
+  );
+
+  it("aceita limites, texto decimal, resposta nula e ativa false", async () => {
+    const author = await createUser();
+    const subject = await createSubject(author.id);
+    const question = await createQuestion(
+      String(subject.id),
+      String(author.id),
+      {
+        enunciado: "x".repeat(500),
+        dificuldade: "3",
+        respostaCorreta: null,
+        ativa: false,
+      },
+    );
+    expect(question.enunciado).toHaveLength(500);
+    expect(question.dificuldade).toBe(3);
+    expect(question.respostaCorreta).toBeNull();
+    expect(question.ativa).toBe(false);
+  });
+
+  it("confere matéria no POST e autor no PATCH usando IDs removidos", async () => {
+    const author = await createUser();
+    const subject = await createSubject(author.id);
+    const question = await createQuestion(subject.id, author.id);
+    const removed = await createSubject(author.id);
+    await prisma.subject.delete({ where: { id: removed.id } });
+    const post = await request(app).post("/questions").send({
+      enunciado: "Questão válida",
+      dificuldade: 1,
+      subjectId: removed.id,
+      authorId: author.id,
+    });
+    const patch = await request(app)
+      .patch(`/questions/${question.id}`)
+      .send({ authorId: await missingUserId() });
+    expectApiError(post, 404, "NOT_FOUND");
+    expectApiError(patch, 404, "NOT_FOUND");
+  });
+  it("rejeita corpo inválido, campo extra e autor inexistente", async () => {
+    const author = await createUser();
+    const subject = await createSubject(author.id);
+
+    const invalid = await request(app).post("/questions").send({
+      enunciado: "Questão válida",
+      dificuldade: 4,
+      subjectId: subject.id,
+      authorId: author.id,
+      inesperado: true,
+    });
+    const missingAuthor = await request(app)
+      .post("/questions")
+      .send({
+        enunciado: "Questão válida",
+        dificuldade: 1,
+        subjectId: subject.id,
+        authorId: await missingUserId(),
+      });
+
+    expectApiError(invalid, 400, "VALIDATION_ERROR");
+    expectApiError(missingAuthor, 404, "NOT_FOUND");
+  });
+
+  it("cria, lista e busca uma questão com matéria e autor", async () => {
+    const author = await createUser();
+    const subject = await createSubject(author.id);
+    const question = await createQuestion(subject.id, author.id);
 
     const list = await request(app).get("/questions");
+    const found = await request(app).get(`/questions/${question.id}`);
 
     expect(list.status).toBe(200);
     expect(list.body.total).toBe(list.body.data.length);
-
-    const found = await request(app).get(`/questions/${created.body.data.id}`);
-
+    expect(list.body.data.some((item) => item.id === question.id)).toBe(true);
     expect(found.status).toBe(200);
-    expect(found.body.data.id).toBe(created.body.data.id);
+    expect(found.body.data.subject.id).toBe(subject.id);
+    expect(found.body.data.author.id).toBe(author.id);
   });
 
-  it("rejeita dificuldade fora do intervalo e ID inválido", async () => {
-    const professor = await createUser();
-    const subject = await createSubject(professor.body.data.id);
-
-    const dificuldadeInvalida = await createQuestion(
-      subject.body.data.id,
-      professor.body.data.id,
-      { dificuldade: 9 },
-    );
-    const idInvalido = await request(app).get("/questions/abc");
-
-    expect(dificuldadeInvalida.status).toBe(400);
-    expect(idInvalido.status).toBe(400);
-  });
-
-  it("retorna 404 para matéria ou autor inexistente", async () => {
-    const professor = await createUser();
-    const subject = await createSubject(professor.body.data.id);
-
-    const semMateria = await createQuestion(999999999, professor.body.data.id);
-    const semAutor = await createQuestion(subject.body.data.id, 999999999);
-
-    expect(semMateria.status).toBe(404);
-    expect(semAutor.status).toBe(404);
-  });
-
-  it("atualiza somente os campos enviados", async () => {
-    const professor = await createUser();
-    const subject = await createSubject(professor.body.data.id);
-    const created = await createQuestion(
-      subject.body.data.id,
-      professor.body.data.id,
-      { enunciado: "Enunciado original", dificuldade: 1 },
-    );
+  it("transforma enunciado e aceita resposta nula em atualização parcial", async () => {
+    const author = await createUser();
+    const subject = await createSubject(author.id);
+    const question = await createQuestion(subject.id, author.id, {
+      dificuldade: 1,
+      ativa: true,
+    });
 
     const response = await request(app)
-      .patch(`/questions/${created.body.data.id}`)
-      .send({ enunciado: "Enunciado atualizado" });
+      .patch(`/questions/${question.id}`)
+      .send({ enunciado: "  O que é REST?  ", respostaCorreta: null });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.enunciado).toBe("Enunciado atualizado");
+    expect(response.body.data.enunciado).toBe("O que é REST?");
+    expect(response.body.data.respostaCorreta).toBeNull();
     expect(response.body.data.dificuldade).toBe(1);
-    expect(response.body.data.disciplina.id).toBe(subject.body.data.id);
+    expect(response.body.data.ativa).toBe(true);
   });
 
-  it("rejeita PATCH vazio e retorna 404 para questão inexistente", async () => {
-    const professor = await createUser();
-    const subject = await createSubject(professor.body.data.id);
-    const created = await createQuestion(
-      subject.body.data.id,
-      professor.body.data.id,
-    );
+  it("valida dificuldade, IDs, PATCH vazio, campos extras e relações", async () => {
+    const author = await createUser();
+    const subject = await createSubject(author.id);
+    const question = await createQuestion(subject.id, author.id);
+    const missingSubject = await createSubject(author.id);
+    await prisma.subject.delete({ where: { id: missingSubject.id } });
 
-    const vazio = await request(app)
-      .patch(`/questions/${created.body.data.id}`)
+    const invalidDifficulty = await request(app)
+      .patch(`/questions/${question.id}`)
+      .send({ dificuldade: 4 });
+    const invalidId = await request(app)
+      .patch("/questions/abc")
+      .send({ dificuldade: 2 });
+    const empty = await request(app)
+      .patch(`/questions/${question.id}`)
       .send({});
-    const inexistente = await request(app)
-      .patch("/questions/999999999")
-      .send({ enunciado: "Qualquer coisa" });
+    const extra = await request(app)
+      .patch(`/questions/${question.id}`)
+      .send({ inesperado: true });
+    const missingRelation = await request(app)
+      .patch(`/questions/${question.id}`)
+      .send({ subjectId: missingSubject.id });
 
-    expect(vazio.status).toBe(400);
-    expect(inexistente.status).toBe(404);
+    expectApiError(invalidDifficulty, 400, "VALIDATION_ERROR");
+    expectApiError(invalidId, 400, "VALIDATION_ERROR");
+    expectApiError(empty, 400, "VALIDATION_ERROR");
+    expectApiError(extra, 400, "VALIDATION_ERROR");
+    expectApiError(missingRelation, 404, "NOT_FOUND");
   });
 
-  it("remove uma questão", async () => {
-    const professor = await createUser();
-    const subject = await createSubject(professor.body.data.id);
-    const created = await createQuestion(
-      subject.body.data.id,
-      professor.body.data.id,
-    );
-    const questionId = created.body.data.id;
+  it("remove uma questão e padroniza a ausência posterior", async () => {
+    const author = await createUser();
+    const subject = await createSubject(author.id);
+    const question = await createQuestion(subject.id, author.id);
 
-    const removed = await request(app).delete(`/questions/${questionId}`);
-    const found = await request(app).get(`/questions/${questionId}`);
+    const removed = await request(app).delete(`/questions/${question.id}`);
+    const found = await request(app).get(`/questions/${question.id}`);
 
     expect(removed.status).toBe(200);
-    expect(found.status).toBe(404);
+    expect(removed.body.data.id).toBe(question.id);
+    expectApiError(found, 404, "NOT_FOUND");
+  });
 
-    createdQuestionIds.splice(createdQuestionIds.indexOf(questionId), 1);
+  it("retorna erro padronizado para questão inexistente", async () => {
+    const author = await createUser();
+    const subject = await createSubject(author.id);
+    const question = await createQuestion(subject.id, author.id);
+    await prisma.question.delete({ where: { id: question.id } });
+    const update = await request(app)
+      .patch(`/questions/${question.id}`)
+      .send({ dificuldade: 2 });
+    const remove = await request(app).delete(`/questions/${question.id}`);
+
+    expectApiError(update, 404, "NOT_FOUND");
+    expectApiError(remove, 404, "NOT_FOUND");
+  });
+});
+
+describe("Contrato global de erro", () => {
+  it("padroniza a rota inexistente", async () => {
+    const response = await request(app).get("/rota-inexistente");
+
+    expectApiError(response, 404, "NOT_FOUND");
   });
 });

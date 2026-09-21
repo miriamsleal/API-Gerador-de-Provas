@@ -1,252 +1,93 @@
 import * as subjectService from "../services/subjectService.js";
 
-const allowedPatchFields = ["nome", "ativa", "professorId"];
-
 /**
- * Converte um valor em um ID inteiro positivo.
- * @param {unknown} value 
- * @returns {number|null} 
+ * Cria uma matéria a partir de dados já validados pelo middleware.
+ * @param {import("express").Request} req - Requisição HTTP.
+ * @param {import("express").Response} res - Resposta HTTP.
+ * @param {import("express").NextFunction} next - Encaminhador de erros.
+ * @returns {Promise<void>} Resposta de criação ou encaminhamento de erro.
  */
-function toPositiveInt(value) {
-  const number = Number(value);
-  return Number.isInteger(number) && number > 0 ? number : null;
-}
-
-/**
- * Verifica se o corpo do PATCH contém ao menos um campo atualizável.
- * @param {Object} body 
- * @returns {boolean} 
- */
-function hasAllowedPatchField(body) {
-  return allowedPatchFields.some((field) => Object.hasOwn(body, field));
-}
-
-/**
- * Identifica valores inválidos nos campos de uma matéria.
- * @param {{ nome?: unknown, ativa?: unknown, professorId?: unknown }} body 
- * @returns {boolean} 
- */
-function hasInvalidSubjectFields({ nome, ativa, professorId }) {
-  return (
-    (nome !== undefined && (typeof nome !== "string" || !nome.trim())) ||
-    (ativa !== undefined && typeof ativa !== "boolean") ||
-    (professorId !== undefined && toPositiveInt(professorId) === null)
-  );
-}
-
-/**
- * Valida e cria uma matéria vinculada a um professor.
- * @param {Object} req 
- * @param {Object} res 
- * @returns {Promise<Object>} 
- */
-export const create = async (req, res) => {
+export async function create(req, res, next) {
   try {
-    const { nome, ativa, professorId } = req.body;
-
-    if (
-      typeof nome !== "string" ||
-      !nome.trim() ||
-      professorId === undefined ||
-      hasInvalidSubjectFields({ nome, ativa, professorId })
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Nome e professorId são obrigatórios; ativa deve ser booleana quando enviada",
-      });
-    }
-
-    const result = await subjectService.createSubject({
-      nome,
-      ativa,
-      professorId: toPositiveInt(professorId),
-    });
-
-    if (!result.ok && result.reason === "PROFESSOR_NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: `Professor com ID ${professorId} não encontrado`,
-      });
-    }
-
-    return res.status(201).json({
+    const data = await subjectService.createSubject(req.body);
+    res.status(201).json({
       success: true,
       message: "Matéria criada com sucesso",
-      data: result.data,
+      data,
     });
   } catch (error) {
-    console.error("Erro ao criar matéria:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao criar matéria",
-    });
+    next(error);
   }
-};
+}
 
 /**
- * Lista as matérias com o professor responsável.
- * @param {Object} _req 
- * @param {Object} res 
- * @returns {Promise<Object>} 
+ * Lista todas as matérias públicas.
+ * @param {import("express").Request} _req - Requisição HTTP não utilizada.
+ * @param {import("express").Response} res - Resposta HTTP.
+ * @param {import("express").NextFunction} next - Encaminhador de erros.
+ * @returns {Promise<void>} Resposta de listagem ou encaminhamento de erro.
  */
-export const getAll = async (_req, res) => {
+export async function getAll(_req, res, next) {
   try {
-    const materias = await subjectService.getAllSubjects();
-
-    return res.status(200).json({
-      success: true,
-      data: materias,
-      total: materias.length,
-    });
+    const data = await subjectService.getAllSubjects();
+    res.status(200).json({ success: true, data, total: data.length });
   } catch (error) {
-    console.error("Erro ao listar matérias:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao listar matérias",
-    });
+    next(error);
   }
-};
+}
 
 /**
- * Busca uma matéria específica pelo ID.
- * @param {Object} req 
- * @param {Object} res 
- * @returns {Promise<Object>} 
+ * Busca uma matéria pelo ID já convertido pelo schema.
+ * @param {import("express").Request} req - Requisição HTTP.
+ * @param {import("express").Response} res - Resposta HTTP.
+ * @param {import("express").NextFunction} next - Encaminhador de erros.
+ * @returns {Promise<void>} Resposta de busca ou encaminhamento de erro.
  */
-export const getById = async (req, res) => {
+export async function getById(req, res, next) {
   try {
-    const subjectId = toPositiveInt(req.params.id);
-
-    if (!subjectId) {
-      return res.status(400).json({
-        success: false,
-        message: "ID inválido. Deve ser um número inteiro positivo",
-      });
-    }
-
-    const materia = await subjectService.getSubjectById(subjectId);
-
-    if (!materia) {
-      return res.status(404).json({
-        success: false,
-        message: `Matéria com ID ${subjectId} não encontrada`,
-      });
-    }
-
-    return res.status(200).json({ success: true, data: materia });
+    const data = await subjectService.getSubjectById(req.params.id);
+    res.status(200).json({ success: true, data });
   } catch (error) {
-    console.error("Erro ao buscar matéria:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao buscar matéria",
-    });
+    next(error);
   }
-};
+}
 
 /**
- * Atualiza parcialmente uma matéria existente.
- * @param {Object} req 
- * @param {Object} res 
- * @returns {Promise<Object>} 
+ * Atualiza parcialmente uma matéria com dados validados.
+ * @param {import("express").Request} req - Requisição HTTP.
+ * @param {import("express").Response} res - Resposta HTTP.
+ * @param {import("express").NextFunction} next - Encaminhador de erros.
+ * @returns {Promise<void>} Resposta de atualização ou encaminhamento de erro.
  */
-export const update = async (req, res) => {
+export async function update(req, res, next) {
   try {
-    const subjectId = toPositiveInt(req.params.id);
-
-    if (!subjectId) {
-      return res.status(400).json({
-        success: false,
-        message: "ID inválido. Deve ser um número inteiro positivo",
-      });
-    }
-
-    if (!hasAllowedPatchField(req.body) || hasInvalidSubjectFields(req.body)) {
-      return res.status(400).json({
-        success: false,
-        message: "Envie ao menos um campo válido: nome, ativa ou professorId",
-      });
-    }
-
-    const payload = { ...req.body };
-
-    if (Object.hasOwn(payload, "professorId")) {
-      payload.professorId = toPositiveInt(payload.professorId);
-    }
-
-    const result = await subjectService.updateSubject(subjectId, payload);
-
-    if (!result.ok && result.reason === "NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: `Matéria com ID ${subjectId} não encontrada`,
-      });
-    }
-
-    if (!result.ok && result.reason === "PROFESSOR_NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: "Professor informado não encontrado",
-      });
-    }
-
-    return res.status(200).json({
+    const data = await subjectService.updateSubject(req.params.id, req.body);
+    res.status(200).json({
       success: true,
       message: "Matéria atualizada com sucesso",
-      data: result.data,
+      data,
     });
   } catch (error) {
-    console.error("Erro ao atualizar matéria:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao atualizar matéria",
-    });
+    next(error);
   }
-};
+}
 
 /**
  * Remove uma matéria sem questões vinculadas.
- * @param {Object} req 
- * @param {Object} res 
- * @returns {Promise<Object>} 
+ * @param {import("express").Request} req - Requisição HTTP.
+ * @param {import("express").Response} res - Resposta HTTP.
+ * @param {import("express").NextFunction} next - Encaminhador de erros.
+ * @returns {Promise<void>} Resposta de remoção ou encaminhamento de erro.
  */
-export const remove = async (req, res) => {
+export async function remove(req, res, next) {
   try {
-    const subjectId = toPositiveInt(req.params.id);
-
-    if (!subjectId) {
-      return res.status(400).json({
-        success: false,
-        message: "ID inválido. Deve ser um número inteiro positivo",
-      });
-    }
-
-    const result = await subjectService.deleteSubject(subjectId);
-
-    if (!result.ok && result.reason === "NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: `Matéria com ID ${subjectId} não encontrada`,
-      });
-    }
-
-    if (!result.ok && result.reason === "SUBJECT_IN_USE") {
-      return res.status(409).json({
-        success: false,
-        message: "Matéria possui questões vinculadas",
-      });
-    }
-
-    return res.status(200).json({
+    const data = await subjectService.deleteSubject(req.params.id);
+    res.status(200).json({
       success: true,
       message: "Matéria removida com sucesso",
-      data: result.data,
+      data,
     });
   } catch (error) {
-    console.error("Erro ao remover matéria:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao remover matéria",
-    });
+    next(error);
   }
-};
+}
