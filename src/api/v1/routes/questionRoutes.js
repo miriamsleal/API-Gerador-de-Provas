@@ -1,6 +1,6 @@
 import express from "express";
 import * as questionController from "../controllers/questionController.js";
-import validate from "../middlewares/validate.js";
+import validate from "../../../middlewares/validate.js";
 import {
   createQuestionSchema,
   idParamSchema,

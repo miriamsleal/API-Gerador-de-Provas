@@ -1,5 +1,5 @@
-import prisma from "../config/database.js";
-import { NotFoundError } from "../errors/AppError.js";
+import prisma from "../../../config/database.js";
+import { NotFoundError } from "../../../errors/AppError.js";
 
 const publicAuthorSelect = {
   id: true,

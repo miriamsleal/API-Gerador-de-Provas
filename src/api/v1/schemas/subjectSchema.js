@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { positiveIdSchema } from "./idSchema.js";
+import { positiveIdSchema } from "../../../schemas/idSchema.js";
 
 const nomeSchema = z
   .string()
