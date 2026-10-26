@@ -17,31 +17,43 @@ enum Papel {
   ADMIN
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  nome      String
-  email     String   @unique
-  foto      String?
-  papel     Papel    @default(PROFESSOR)
-  createdAt DateTime @default(now()) @map("data_criacao")
-  updatedAt DateTime @updatedAt @map("data_atualizacao")
+/// ADICIONADO: enum da V2; o enum Papel da V1 permanece intacto.
+enum TipoUsuario {
+  professor
+  admin
+}
 
-  subjects  Subject[]
-  questions Question[]
+model User {
+  id           Int          @id @default(autoincrement())
+  nome         String
+  email        String       @unique
+  foto         String?
+  papel        Papel        @default(PROFESSOR)
+  
+  // ADICIONADO: campos V2 anuláveis; não remover nome/papel nem preencher legado.
+  primeiroNome String?      @map("primeiro_nome")
+  sobrenome    String?
+  telefone     String?
+  
+  // Sem default no banco: um ADMIN legado não deve virar professor na V2.
+  tipoUsuario  TipoUsuario? @map("tipo_usuario")
+  createdAt    DateTime     @default(now()) @map("data_criacao")
+  updatedAt    DateTime     @updatedAt @map("data_atualizacao")
+  subjects     Subject[]
+  questions    Question[]
 
   @@map("users")
 }
 
 model Subject {
-  id          Int      @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   nome        String
-  ativa       Boolean  @default(true)
-  professorId Int      @map("professor_id")
-  createdAt   DateTime @default(now()) @map("data_criacao")
-  updatedAt   DateTime @updatedAt @map("data_atualizacao")
-
-  professor User       @relation(fields: [professorId], references: [id])
-  questions Question[]
+  ativa       Boolean    @default(true)
+  professorId Int        @map("professor_id")
+  professor   User       @relation(fields: [professorId], references: [id])
+  questions   Question[]
+  createdAt   DateTime   @default(now()) @map("data_criacao")
+  updatedAt   DateTime   @updatedAt @map("data_atualizacao")
 
   @@map("subjects")
 }
@@ -52,13 +64,12 @@ model Question {
   dificuldade     Int
   respostaCorreta String?  @map("resposta_correta")
   subjectId       Int      @map("disciplina_id")
+  subject         Subject  @relation(fields: [subjectId], references: [id])
   authorId        Int      @map("autor_id")
+  author          User     @relation(fields: [authorId], references: [id])
   ativa           Boolean  @default(true)
   createdAt       DateTime @default(now()) @map("data_criacao")
   updatedAt       DateTime @updatedAt @map("data_atualizacao")
-
-  subject Subject @relation(fields: [subjectId], references: [id])
-  author  User    @relation(fields: [authorId], references: [id])
 
   @@map("questions")
 }

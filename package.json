@@ -11,8 +11,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "test:pratica": "vitest run tests/users.test.js tests/middlewares.test.js",
-    "test:atividade": "vitest run tests/subjects-and-questions.test.js",
+    "test:pratica": "vitest run tests/users.test.js tests/subjects-and-questions.test.js tests/middlewares.test.js tests/users-v2.test.js tests/deprecation.test.js tests/migration-v2.test.js",
+    "test:atividade": "vitest run tests/resources-v2.test.js",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

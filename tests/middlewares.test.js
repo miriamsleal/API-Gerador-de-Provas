@@ -105,7 +105,4 @@ describe("Infraestrutura e pipeline HTTP", () => {
     expect(response.body.error.code).toBe("CONFLICT");
     expect(JSON.stringify(response.body)).not.toContain("secret");
   });
-
-  
-  
 });
