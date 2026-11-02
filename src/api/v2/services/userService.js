@@ -1,5 +1,6 @@
 import prisma from "../../../config/database.js";
 import { ConflictError, NotFoundError } from "../../../errors/AppError.js";
+import { uploadToUploadcare } from "./uploadService.js";
 
 // MODIFICADO: busca também campos legados para adaptar a resposta sem editar a V1.
 const userV2ReadSelect = {
@@ -97,12 +98,17 @@ export async function getUserById(userId) {
 }
 
 /** Cria um usuário e grava simultaneamente as representações V1 e V2. */
-export async function createUser(data) {
+export async function createUser(data, file) {
   const owner = await prisma.user.findUnique({
     where: { email: data.email },
     select: { id: true },
   });
   if (owner) throw new ConflictError("E-mail já cadastrado");
+
+  // ADICIONADO: só envia bytes após verificar conflito previsível de e-mail.
+  const foto = file
+    ? await uploadToUploadcare(file.buffer, file.mimetype)
+    : (data.foto ?? null);
 
   const tipoUsuario = data.tipoUsuario ?? "professor";
   try {
@@ -113,7 +119,7 @@ export async function createUser(data) {
         // Mantém V2 → V1 na própria escrita, sem alterar arquivos da V1.
         nome: toNome(data.primeiroNome, data.sobrenome),
         papel: toPapel(tipoUsuario),
-        foto: data.foto ?? null,
+        foto,
         telefone: data.telefone ?? null,
       },
       select: userV2ReadSelect,
@@ -127,7 +133,7 @@ export async function createUser(data) {
 }
 
 /** Atualiza a V2 e sincroniza os campos equivalentes da V1. */
-export async function updateUser(userId, data) {
+export async function updateUser(userId, data, file) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     // MODIFICADO: o PATCH também precisa interpretar um registro legado.
@@ -144,6 +150,13 @@ export async function updateUser(userId, data) {
   }
 
   const synchronizedData = { ...data };
+  // ADICIONADO: arquivo substitui a referência, depois de existência/e-mail válidos.
+  if (file) {
+    synchronizedData.foto = await uploadToUploadcare(
+      file.buffer,
+      file.mimetype,
+    );
+  }
   if (data.tipoUsuario !== undefined)
     synchronizedData.papel = toPapel(data.tipoUsuario);
   if (data.primeiroNome !== undefined || data.sobrenome !== undefined) {

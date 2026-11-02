@@ -2,6 +2,7 @@
 import express from "express";
 import * as userController from "../controllers/userController.js";
 import validate from "../../../middlewares/validate.js";
+import uploadPhoto from "../../../config/multer.js";
 import {
   createUserV2Schema,
   idParamSchema,
@@ -10,7 +11,12 @@ import {
 
 const router = express.Router();
 
-router.post("/", validate(createUserV2Schema), userController.create);
+router.post(
+  "/",
+  uploadPhoto,
+  validate(createUserV2Schema),
+  userController.create,
+);
 router.get("/", userController.getAll);
 router.get("/:id", validate(idParamSchema, "params"), userController.getById);
 router.patch(

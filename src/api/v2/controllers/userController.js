@@ -4,7 +4,7 @@ import * as userService from "../services/userService.js";
 /** Cria um usuário usando o contrato V2. */
 export async function create(req, res, next) {
   try {
-    const data = await userService.createUser(req.body);
+    const data = await userService.createUser(req.body, req.file);
     res
       .status(201)
       .json({ success: true, message: "Usuário criado com sucesso", data });
