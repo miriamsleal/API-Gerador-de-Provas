@@ -44,13 +44,12 @@ export const createUserV2Schema = z
   })
   .strict();
 
-/** Schema para PATCH /v2/users/:id. */
-export const updateUserV2Schema = z
-  .object(optionalV2Fields)
-  .strict()
-  .refine((data) => Object.keys(data).length > 0, {
-    message: "Envie pelo menos um campo para atualização",
-  });
+export const updateUserV2FieldsSchema = z.object(optionalV2Fields).strict();
+
+export const updateUserV2Schema = updateUserV2FieldsSchema.refine(
+  (data) => Object.keys(data).length > 0,
+  { message: "Envie pelo menos um campo para atualização" },
+);
 
 /** Schema para parâmetros :id positivos. */
 export const idParamSchema = z.object({ id: positiveIdSchema });
