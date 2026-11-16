@@ -13,9 +13,18 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import app from "../src/app.js";
 import prisma from "../src/config/database.js";
+// ADICIONADO (aula 11): as escritas na V2 passam a exigir token de ADMIN.
+import { createAuthUser, removeAuthUsers } from "./helpers/auth.js";
 import { createUploadFixtures } from "./fixtures/createUploadFixtures.js";
 import { startUploadcareStub } from "./helpers/uploadcareStub.js";
 import { postCases, patchCases } from "./uploadCases.js";
+
+// ADICIONADO (aula 11): um ADMIN por arquivo, criado direto no banco e removido ao final.
+let adminAuth;
+beforeAll(async () => {
+  ({ auth: adminAuth } = await createAuthUser({ papel: "ADMIN" }));
+});
+afterAll(removeAuthUsers);
 
 let apiServer;
 let stub;
@@ -46,6 +55,7 @@ afterAll(async () => {
 async function fixture() {
   const response = await request(apiServer)
     .post("/v2/users")
+    .set(adminAuth)
     .send({
       primeiroNome: "Ada",
       sobrenome: "Lovelace",
@@ -62,10 +72,12 @@ async function buildRequest(method, url, fields, scenario) {
   if (scenario.raw !== undefined) {
     const rawRequest = request(apiServer)[method](url);
     return rawRequest
+      .set(adminAuth)
       .set("Content-Type", scenario.contentType)
       .send(scenario.raw);
   }
-  if (scenario.json) return request(apiServer)[method](url).send(fields);
+  if (scenario.json)
+    return request(apiServer)[method](url).set(adminAuth).send(fields);
   // Lê as fixtures antes do envio; fetch preserva a resposta HTTP antecipada
   // quando a rota pendente ainda não consome o corpo multipart.
   const form = new FormData();
@@ -92,6 +104,7 @@ async function buildRequest(method, url, fields, scenario) {
     `http://127.0.0.1:${apiServer.address().port}${url}`,
     {
       method: method.toUpperCase(),
+      headers: adminAuth,
       body: form,
     },
   );

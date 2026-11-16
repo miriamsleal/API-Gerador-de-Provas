@@ -1,8 +1,17 @@
 // ADICIONADO: critérios finais da atividade; não modificar arquivos da V1.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import app from "../src/app.js";
 import prisma from "../src/config/database.js";
+// ADICIONADO (aula 11): as escritas na V2 passam a exigir token de ADMIN.
+import { createAuthUser, removeAuthUsers } from "./helpers/auth.js";
+
+// ADICIONADO (aula 11): um ADMIN por arquivo, criado direto no banco e removido ao final.
+let adminAuth;
+beforeAll(async () => {
+  ({ auth: adminAuth } = await createAuthUser({ papel: "ADMIN" }));
+});
+afterAll(removeAuthUsers);
 
 const userIds = [];
 const subjectIds = [];
@@ -69,7 +78,10 @@ describe.each(["subjects", "questions"])(
               authorId: f.user.id,
               ativa: false,
             };
-      const response = await request(app).post(`/v2/${resource}`).send(body);
+      const response = await request(app)
+        .post(`/v2/${resource}`)
+        .set(adminAuth)
+        .send(body);
       if (response.status === 201)
         (resource === "subjects" ? subjectIds : questionIds).push(
           response.body.data.id,
@@ -115,6 +127,7 @@ describe.each(["subjects", "questions"])(
       const id = resource === "subjects" ? f.subject.id : f.question.id;
       const response = await request(app)
         .patch(`/v2/${resource}/${id}`)
+        .set(adminAuth)
         .send({ ativa: false });
       expect(response.status).toBe(200);
       expect(response.body.data.ativa).toBe(false);
@@ -128,7 +141,9 @@ describe.each(["subjects", "questions"])(
       const id = resource === "subjects" ? f.subject.id : f.question.id;
       if (resource === "subjects")
         await prisma.question.delete({ where: { id: f.question.id } });
-      const response = await request(app).delete(`/v2/${resource}/${id}`);
+      const response = await request(app)
+        .delete(`/v2/${resource}/${id}`)
+        .set(adminAuth);
       expect(response.status).toBe(200);
       expect(response.body.data.id).toBe(id);
       const missing = await request(app).get(`/v1/${resource}/${id}`);
@@ -140,9 +155,9 @@ describe.each(["subjects", "questions"])(
       async (method) => {
         const agent = request(app);
         for (const id of ["abc", "0", "-1", "1.5", "2147483648"]) {
-          const response = await agent[method](`/v2/${resource}/${id}`).send(
-            method === "patch" ? { ativa: false } : undefined,
-          );
+          const response = await agent[method](`/v2/${resource}/${id}`)
+            .set(adminAuth)
+            .send(method === "patch" ? { ativa: false } : undefined);
           expectError(response, 400, "VALIDATION_ERROR");
         }
       },
@@ -157,9 +172,9 @@ describe.each(["subjects", "questions"])(
         await prisma.question.delete({ where: { id: f.question.id } });
         if (resource === "subjects")
           await prisma.subject.delete({ where: { id: f.subject.id } });
-        const response = await agent[method](`/v2/${resource}/${id}`).send(
-          method === "patch" ? { ativa: false } : undefined,
-        );
+        const response = await agent[method](`/v2/${resource}/${id}`)
+          .set(adminAuth)
+          .send(method === "patch" ? { ativa: false } : undefined);
         expectError(response, 404, "NOT_FOUND");
         expect(response.body.error.message).toContain(
           resource === "subjects" ? "Matéria com ID" : "Questão com ID",
@@ -171,18 +186,22 @@ describe.each(["subjects", "questions"])(
       const f = await fixtures();
       const id = resource === "subjects" ? f.subject.id : f.question.id;
       expectError(
-        await request(app).post(`/v2/${resource}`).send({}),
-        400,
-        "VALIDATION_ERROR",
-      );
-      expectError(
-        await request(app).patch(`/v2/${resource}/${id}`).send({}),
+        await request(app).post(`/v2/${resource}`).set(adminAuth).send({}),
         400,
         "VALIDATION_ERROR",
       );
       expectError(
         await request(app)
           .patch(`/v2/${resource}/${id}`)
+          .set(adminAuth)
+          .send({}),
+        400,
+        "VALIDATION_ERROR",
+      );
+      expectError(
+        await request(app)
+          .patch(`/v2/${resource}/${id}`)
+          .set(adminAuth)
           .send({ inesperado: true }),
         400,
         "VALIDATION_ERROR",
@@ -235,12 +254,16 @@ describe.each(["subjects", "questions"])(
       expectError(
         await request(app)
           .post(`/v2/${resource}`)
+          .set(adminAuth)
           .send({ ...body, ...invalid }),
         400,
         "VALIDATION_ERROR",
       );
       expectError(
-        await request(app).patch(`/v2/${resource}/${id}`).send(invalid),
+        await request(app)
+          .patch(`/v2/${resource}/${id}`)
+          .set(adminAuth)
+          .send(invalid),
         400,
         "VALIDATION_ERROR",
       );
@@ -258,7 +281,10 @@ describe.each(["subjects", "questions"])(
               subjectId: f.subject.id,
               authorId: f.user.id,
             };
-      const created = await request(app).post(`/v2/${resource}`).send(body);
+      const created = await request(app)
+        .post(`/v2/${resource}`)
+        .set(adminAuth)
+        .send(body);
       if (created.status === 201)
         (resource === "subjects" ? subjectIds : questionIds).push(
           created.body.data.id,
@@ -273,6 +299,7 @@ describe.each(["subjects", "questions"])(
           : { subjectId: other.subject.id, authorId: other.user.id };
       const changed = await request(app)
         .patch(`/v2/${resource}/${created.body.data.id}`)
+        .set(adminAuth)
         .send(update);
       expect(changed.status).toBe(200);
       expect(
@@ -301,7 +328,10 @@ describe.each(["subjects", "questions"])(
               subjectId: f.subject.id,
               authorId: missing.id,
             };
-      const post = await request(app).post(`/v2/${resource}`).send(body);
+      const post = await request(app)
+        .post(`/v2/${resource}`)
+        .set(adminAuth)
+        .send(body);
       expectError(post, 404, "NOT_FOUND");
       expect(post.body.error.message).toContain(
         resource === "subjects" ? "Professor com ID" : "Autor com ID",
@@ -312,6 +342,7 @@ describe.each(["subjects", "questions"])(
           : { authorId: missing.id };
       const response = await request(app)
         .patch(`/v2/${resource}/${id}`)
+        .set(adminAuth)
         .send(update);
       expectError(response, 404, "NOT_FOUND");
       expect(response.body.error.message).toContain(
@@ -326,6 +357,7 @@ describe("Atividade — relações V2", () => {
     const f = await fixtures();
     const answered = await request(app)
       .patch(`/v2/questions/${f.question.id}`)
+      .set(adminAuth)
       .send({
         respostaCorreta: "Um acordo entre cliente e servidor",
         dificuldade: 3,
@@ -336,6 +368,7 @@ describe("Atividade — relações V2", () => {
     );
     const cleared = await request(app)
       .patch(`/v2/questions/${f.question.id}`)
+      .set(adminAuth)
       .send({ respostaCorreta: null });
     expect(cleared.status).toBe(200);
     expect(cleared.body.data.respostaCorreta).toBeNull();
@@ -346,7 +379,7 @@ describe("Atividade — relações V2", () => {
   it("impede excluir matéria que possui questões", async () => {
     const f = await fixtures();
     expectError(
-      await request(app).delete(`/v2/subjects/${f.subject.id}`),
+      await request(app).delete(`/v2/subjects/${f.subject.id}`).set(adminAuth),
       409,
       "CONFLICT",
     );
@@ -358,7 +391,7 @@ describe("Atividade — relações V2", () => {
       data: { nome: "Removida", professorId: f.user.id },
     });
     await prisma.subject.delete({ where: { id: absent.id } });
-    const post = await request(app).post("/v2/questions").send({
+    const post = await request(app).post("/v2/questions").set(adminAuth).send({
       enunciado: "Questão válida",
       dificuldade: 1,
       subjectId: absent.id,
@@ -368,6 +401,7 @@ describe("Atividade — relações V2", () => {
     expect(post.body.error.message).toContain("Matéria com ID");
     const patch = await request(app)
       .patch(`/v2/questions/${f.question.id}`)
+      .set(adminAuth)
       .send({ subjectId: absent.id });
     expectError(patch, 404, "NOT_FOUND");
     expect(patch.body.error.message).toContain("Matéria com ID");

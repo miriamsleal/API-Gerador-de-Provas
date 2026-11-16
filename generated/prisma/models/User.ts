@@ -40,6 +40,7 @@ export type UserMinAggregateOutputType = {
   email: string | null
   foto: string | null
   papel: $Enums.Papel | null
+  senha: string | null
   primeiroNome: string | null
   sobrenome: string | null
   telefone: string | null
@@ -54,6 +55,7 @@ export type UserMaxAggregateOutputType = {
   email: string | null
   foto: string | null
   papel: $Enums.Papel | null
+  senha: string | null
   primeiroNome: string | null
   sobrenome: string | null
   telefone: string | null
@@ -68,6 +70,7 @@ export type UserCountAggregateOutputType = {
   email: number
   foto: number
   papel: number
+  senha: number
   primeiroNome: number
   sobrenome: number
   telefone: number
@@ -92,6 +95,7 @@ export type UserMinAggregateInputType = {
   email?: true
   foto?: true
   papel?: true
+  senha?: true
   primeiroNome?: true
   sobrenome?: true
   telefone?: true
@@ -106,6 +110,7 @@ export type UserMaxAggregateInputType = {
   email?: true
   foto?: true
   papel?: true
+  senha?: true
   primeiroNome?: true
   sobrenome?: true
   telefone?: true
@@ -120,6 +125,7 @@ export type UserCountAggregateInputType = {
   email?: true
   foto?: true
   papel?: true
+  senha?: true
   primeiroNome?: true
   sobrenome?: true
   telefone?: true
@@ -221,6 +227,7 @@ export type UserGroupByOutputType = {
   email: string
   foto: string | null
   papel: $Enums.Papel
+  senha: string | null
   primeiroNome: string | null
   sobrenome: string | null
   telefone: string | null
@@ -258,6 +265,7 @@ export type UserWhereInput = {
   email?: Prisma.StringFilter<"User"> | string
   foto?: Prisma.StringNullableFilter<"User"> | string | null
   papel?: Prisma.EnumPapelFilter<"User"> | $Enums.Papel
+  senha?: Prisma.StringNullableFilter<"User"> | string | null
   primeiroNome?: Prisma.StringNullableFilter<"User"> | string | null
   sobrenome?: Prisma.StringNullableFilter<"User"> | string | null
   telefone?: Prisma.StringNullableFilter<"User"> | string | null
@@ -274,6 +282,7 @@ export type UserOrderByWithRelationInput = {
   email?: Prisma.SortOrder
   foto?: Prisma.SortOrderInput | Prisma.SortOrder
   papel?: Prisma.SortOrder
+  senha?: Prisma.SortOrderInput | Prisma.SortOrder
   primeiroNome?: Prisma.SortOrderInput | Prisma.SortOrder
   sobrenome?: Prisma.SortOrderInput | Prisma.SortOrder
   telefone?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -293,6 +302,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   nome?: Prisma.StringFilter<"User"> | string
   foto?: Prisma.StringNullableFilter<"User"> | string | null
   papel?: Prisma.EnumPapelFilter<"User"> | $Enums.Papel
+  senha?: Prisma.StringNullableFilter<"User"> | string | null
   primeiroNome?: Prisma.StringNullableFilter<"User"> | string | null
   sobrenome?: Prisma.StringNullableFilter<"User"> | string | null
   telefone?: Prisma.StringNullableFilter<"User"> | string | null
@@ -309,6 +319,7 @@ export type UserOrderByWithAggregationInput = {
   email?: Prisma.SortOrder
   foto?: Prisma.SortOrderInput | Prisma.SortOrder
   papel?: Prisma.SortOrder
+  senha?: Prisma.SortOrderInput | Prisma.SortOrder
   primeiroNome?: Prisma.SortOrderInput | Prisma.SortOrder
   sobrenome?: Prisma.SortOrderInput | Prisma.SortOrder
   telefone?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -331,6 +342,7 @@ export type UserScalarWhereWithAggregatesInput = {
   email?: Prisma.StringWithAggregatesFilter<"User"> | string
   foto?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   papel?: Prisma.EnumPapelWithAggregatesFilter<"User"> | $Enums.Papel
+  senha?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   primeiroNome?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   sobrenome?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   telefone?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
@@ -344,6 +356,7 @@ export type UserCreateInput = {
   email: string
   foto?: string | null
   papel?: $Enums.Papel
+  senha?: string | null
   primeiroNome?: string | null
   sobrenome?: string | null
   telefone?: string | null
@@ -360,6 +373,7 @@ export type UserUncheckedCreateInput = {
   email: string
   foto?: string | null
   papel?: $Enums.Papel
+  senha?: string | null
   primeiroNome?: string | null
   sobrenome?: string | null
   telefone?: string | null
@@ -375,6 +389,7 @@ export type UserUpdateInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   foto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   papel?: Prisma.EnumPapelFieldUpdateOperationsInput | $Enums.Papel
+  senha?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primeiroNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sobrenome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telefone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -391,6 +406,7 @@ export type UserUncheckedUpdateInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   foto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   papel?: Prisma.EnumPapelFieldUpdateOperationsInput | $Enums.Papel
+  senha?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primeiroNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sobrenome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telefone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -407,6 +423,7 @@ export type UserCreateManyInput = {
   email: string
   foto?: string | null
   papel?: $Enums.Papel
+  senha?: string | null
   primeiroNome?: string | null
   sobrenome?: string | null
   telefone?: string | null
@@ -420,6 +437,7 @@ export type UserUpdateManyMutationInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   foto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   papel?: Prisma.EnumPapelFieldUpdateOperationsInput | $Enums.Papel
+  senha?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primeiroNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sobrenome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telefone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -434,6 +452,7 @@ export type UserUncheckedUpdateManyInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   foto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   papel?: Prisma.EnumPapelFieldUpdateOperationsInput | $Enums.Papel
+  senha?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primeiroNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sobrenome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telefone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -448,6 +467,7 @@ export type UserCountOrderByAggregateInput = {
   email?: Prisma.SortOrder
   foto?: Prisma.SortOrder
   papel?: Prisma.SortOrder
+  senha?: Prisma.SortOrder
   primeiroNome?: Prisma.SortOrder
   sobrenome?: Prisma.SortOrder
   telefone?: Prisma.SortOrder
@@ -466,6 +486,7 @@ export type UserMaxOrderByAggregateInput = {
   email?: Prisma.SortOrder
   foto?: Prisma.SortOrder
   papel?: Prisma.SortOrder
+  senha?: Prisma.SortOrder
   primeiroNome?: Prisma.SortOrder
   sobrenome?: Prisma.SortOrder
   telefone?: Prisma.SortOrder
@@ -480,6 +501,7 @@ export type UserMinOrderByAggregateInput = {
   email?: Prisma.SortOrder
   foto?: Prisma.SortOrder
   papel?: Prisma.SortOrder
+  senha?: Prisma.SortOrder
   primeiroNome?: Prisma.SortOrder
   sobrenome?: Prisma.SortOrder
   telefone?: Prisma.SortOrder
@@ -558,6 +580,7 @@ export type UserCreateWithoutSubjectsInput = {
   email: string
   foto?: string | null
   papel?: $Enums.Papel
+  senha?: string | null
   primeiroNome?: string | null
   sobrenome?: string | null
   telefone?: string | null
@@ -573,6 +596,7 @@ export type UserUncheckedCreateWithoutSubjectsInput = {
   email: string
   foto?: string | null
   papel?: $Enums.Papel
+  senha?: string | null
   primeiroNome?: string | null
   sobrenome?: string | null
   telefone?: string | null
@@ -603,6 +627,7 @@ export type UserUpdateWithoutSubjectsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   foto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   papel?: Prisma.EnumPapelFieldUpdateOperationsInput | $Enums.Papel
+  senha?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primeiroNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sobrenome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telefone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -618,6 +643,7 @@ export type UserUncheckedUpdateWithoutSubjectsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   foto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   papel?: Prisma.EnumPapelFieldUpdateOperationsInput | $Enums.Papel
+  senha?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primeiroNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sobrenome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telefone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -632,6 +658,7 @@ export type UserCreateWithoutQuestionsInput = {
   email: string
   foto?: string | null
   papel?: $Enums.Papel
+  senha?: string | null
   primeiroNome?: string | null
   sobrenome?: string | null
   telefone?: string | null
@@ -647,6 +674,7 @@ export type UserUncheckedCreateWithoutQuestionsInput = {
   email: string
   foto?: string | null
   papel?: $Enums.Papel
+  senha?: string | null
   primeiroNome?: string | null
   sobrenome?: string | null
   telefone?: string | null
@@ -677,6 +705,7 @@ export type UserUpdateWithoutQuestionsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   foto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   papel?: Prisma.EnumPapelFieldUpdateOperationsInput | $Enums.Papel
+  senha?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primeiroNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sobrenome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telefone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -692,6 +721,7 @@ export type UserUncheckedUpdateWithoutQuestionsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   foto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   papel?: Prisma.EnumPapelFieldUpdateOperationsInput | $Enums.Papel
+  senha?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primeiroNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sobrenome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telefone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -747,6 +777,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   email?: boolean
   foto?: boolean
   papel?: boolean
+  senha?: boolean
   primeiroNome?: boolean
   sobrenome?: boolean
   telefone?: boolean
@@ -764,6 +795,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   email?: boolean
   foto?: boolean
   papel?: boolean
+  senha?: boolean
   primeiroNome?: boolean
   sobrenome?: boolean
   telefone?: boolean
@@ -778,6 +810,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   email?: boolean
   foto?: boolean
   papel?: boolean
+  senha?: boolean
   primeiroNome?: boolean
   sobrenome?: boolean
   telefone?: boolean
@@ -792,6 +825,7 @@ export type UserSelectScalar = {
   email?: boolean
   foto?: boolean
   papel?: boolean
+  senha?: boolean
   primeiroNome?: boolean
   sobrenome?: boolean
   telefone?: boolean
@@ -800,7 +834,7 @@ export type UserSelectScalar = {
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nome" | "email" | "foto" | "papel" | "primeiroNome" | "sobrenome" | "telefone" | "tipoUsuario" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nome" | "email" | "foto" | "papel" | "senha" | "primeiroNome" | "sobrenome" | "telefone" | "tipoUsuario" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   subjects?: boolean | Prisma.User$subjectsArgs<ExtArgs>
   questions?: boolean | Prisma.User$questionsArgs<ExtArgs>
@@ -821,6 +855,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     email: string
     foto: string | null
     papel: $Enums.Papel
+    senha: string | null
     primeiroNome: string | null
     sobrenome: string | null
     telefone: string | null
@@ -1257,6 +1292,7 @@ export interface UserFieldRefs {
   readonly email: Prisma.FieldRef<"User", 'String'>
   readonly foto: Prisma.FieldRef<"User", 'String'>
   readonly papel: Prisma.FieldRef<"User", 'Papel'>
+  readonly senha: Prisma.FieldRef<"User", 'String'>
   readonly primeiroNome: Prisma.FieldRef<"User", 'String'>
   readonly sobrenome: Prisma.FieldRef<"User", 'String'>
   readonly telefone: Prisma.FieldRef<"User", 'String'>

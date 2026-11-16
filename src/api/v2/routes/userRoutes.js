@@ -3,6 +3,13 @@ import express from "express";
 import uploadPhoto from "../../../config/multer.js";
 import * as userController from "../controllers/userController.js";
 import validate from "../../../middlewares/validate.js";
+// ADICIONADO (aula 11): autenticação (quem é) e autorização (o que pode fazer).
+import authenticate from "../../../middlewares/auth.js";
+import {
+  isAdmin,
+  isOwnerOrAdmin,
+  restrictFieldsToAdmin,
+} from "../../../middlewares/authorize.js";
 import {
   createUserV2Schema,
   idParamSchema,
@@ -12,6 +19,7 @@ import {
 const router = express.Router();
 
 // ADICIONADO: componentes V2 (usuário, envelopes, corpos e erros de upload).
+// MODIFICADO (aula 11): senha opcional em CreateUserV2 e CreateUserV2Multipart.
 /**
  * @swagger
  * components:
@@ -114,6 +122,12 @@ const router = express.Router();
  *           format: uri
  *           nullable: true
  *           description: URL já hospedada. Para enviar um arquivo, use multipart/form-data.
+ *         senha:
+ *           type: string
+ *           format: password
+ *           writeOnly: true
+ *           minLength: 8
+ *           description: Opcional. Senha inicial (8 caracteres a 72 bytes); sem ela, o usuário não consegue fazer login.
  *     CreateUserV2Multipart:
  *       type: object
  *       required: [primeiroNome, sobrenome, email]
@@ -139,6 +153,12 @@ const router = express.Router();
  *           type: string
  *           format: binary
  *           description: JPEG, PNG, GIF ou WebP de até 5 MiB. Tem prioridade sobre uma URL enviada como texto.
+ *         senha:
+ *           type: string
+ *           format: password
+ *           writeOnly: true
+ *           minLength: 8
+ *           description: Opcional. Senha inicial (8 caracteres a 72 bytes); sem ela, o usuário não consegue fazer login.
  *     UpdateUserV2:
  *       type: object
  *       additionalProperties: false
@@ -225,13 +245,16 @@ function validateUpdateWithPhoto(req, res, next) {
 }
 
 // ADICIONADO: POST aceita JSON ou multipart; documenta todos os status observáveis.
+// MODIFICADO (aula 11): descrição, security bearerAuth e respostas 401 e 403.
 /**
  * @swagger
  * /v2/users:
  *   post:
  *     summary: Cria um usuário (V2)
- *     description: Aceita JSON sem arquivo ou multipart/form-data com o arquivo opcional foto. O nome completo e o papel da V1 são gravados automaticamente.
+ *     description: Exclusivo de ADMIN. Aceita JSON sem arquivo ou multipart/form-data com o arquivo opcional foto. O nome completo e o papel da V1 são gravados automaticamente.
  *     tags: [Usuários V2]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -250,6 +273,10 @@ function validateUpdateWithPhoto(req, res, next) {
  *               $ref: '#/components/schemas/UserV2Response'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       409:
  *         $ref: '#/components/responses/Conflict'
  *       413:
@@ -259,8 +286,11 @@ function validateUpdateWithPhoto(req, res, next) {
  *       503:
  *         $ref: '#/components/responses/UploadNotConfigured'
  */
+// MODIFICADO (aula 11): somente ADMIN cria usuários; a checagem vem antes do upload.
 router.post(
   "/",
+  authenticate,
+  isAdmin,
   uploadPhoto,
   validate(createUserV2Schema),
   userController.create,
@@ -308,13 +338,16 @@ router.get("/", userController.getAll);
 router.get("/:id", validate(idParamSchema, "params"), userController.getById);
 
 // ADICIONADO: PATCH parcial com os mesmos dois formatos de corpo do POST.
+// MODIFICADO (aula 11): descrição, security bearerAuth e respostas 401 e 403.
 /**
  * @swagger
  * /v2/users/{id}:
  *   patch:
  *     summary: Atualiza parcialmente um usuário (V2)
- *     description: Campos omitidos são preservados. Em multipart, o arquivo foto sozinho já é uma atualização válida.
+ *     description: O próprio usuário ou um ADMIN. Somente ADMIN altera tipoUsuario. Campos omitidos são preservados. Em multipart, o arquivo foto sozinho já é uma atualização válida.
  *     tags: [Usuários V2]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/UserId'
  *     requestBody:
@@ -335,6 +368,10 @@ router.get("/:id", validate(idParamSchema, "params"), userController.getById);
  *               $ref: '#/components/schemas/UserV2Response'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       409:
@@ -346,23 +383,30 @@ router.get("/:id", validate(idParamSchema, "params"), userController.getById);
  *       503:
  *         $ref: '#/components/responses/UploadNotConfigured'
  */
+// MODIFICADO (aula 11): exige token; PROFESSOR só altera o próprio cadastro e não muda o papel.
 router.patch(
   "/:id",
+  authenticate,
   validate(idParamSchema, "params"),
+  isOwnerOrAdmin("id"),
   // MODIFICADO: parser antes da validação do texto, depois do ID válido.
   uploadPhoto,
   validateUpdateWithPhoto,
+  restrictFieldsToAdmin(["tipoUsuario"]),
   userController.update,
 );
 
 // ADICIONADO: DELETE com conflito para usuários vinculados.
+// MODIFICADO (aula 11): descrição, security bearerAuth e respostas 401 e 403.
 /**
  * @swagger
  * /v2/users/{id}:
  *   delete:
  *     summary: Remove um usuário sem vínculos (V2)
- *     description: Usuários com matérias ou questões vinculadas não podem ser removidos.
+ *     description: Exclusivo de ADMIN. Usuários com matérias ou questões vinculadas não podem ser removidos.
  *     tags: [Usuários V2]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/UserId'
  *     responses:
@@ -374,11 +418,22 @@ router.patch(
  *               $ref: '#/components/schemas/UserV2Response'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       409:
  *         $ref: '#/components/responses/Conflict'
  */
-router.delete("/:id", validate(idParamSchema, "params"), userController.remove);
+// MODIFICADO (aula 11): somente ADMIN remove usuários.
+router.delete(
+  "/:id",
+  authenticate,
+  isAdmin,
+  validate(idParamSchema, "params"),
+  userController.remove,
+);
 
 export default router;

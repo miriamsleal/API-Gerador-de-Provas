@@ -1,8 +1,17 @@
 // MODIFICADO: verifica fallback V2 com V1 intacta; não exige SQL de preenchimento.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import app from "../src/app.js";
 import prisma from "../src/config/database.js";
+// ADICIONADO (aula 11): as escritas na V2 passam a exigir token de ADMIN.
+import { createAuthUser, removeAuthUsers } from "./helpers/auth.js";
+
+// ADICIONADO (aula 11): um ADMIN por arquivo, criado direto no banco e removido ao final.
+let adminAuth;
+beforeAll(async () => {
+  ({ auth: adminAuth } = await createAuthUser({ papel: "ADMIN" }));
+});
+afterAll(removeAuthUsers);
 
 const userIds = [];
 const subjectIds = [];
@@ -16,6 +25,7 @@ function email() {
 async function createV2(overrides = {}) {
   const response = await request(app)
     .post("/v2/users")
+    .set(adminAuth)
     .send({
       primeiroNome: "Ada",
       sobrenome: "Lovelace",
@@ -153,6 +163,7 @@ describe("Prática — User V2 e coexistência", () => {
     const id = created.body.data.id;
     const updated = await request(app)
       .patch(`/v2/users/${id}`)
+      .set(adminAuth)
       .send({ primeiroNome: "Augusta", tipoUsuario: "admin" });
     expect(updated.status).toBe(200);
     expect(updated.body.data).toMatchObject({
@@ -169,6 +180,7 @@ describe("Prática — User V2 e coexistência", () => {
     });
     const removedOptional = await request(app)
       .patch(`/v2/users/${id}`)
+      .set(adminAuth)
       .send({ telefone: null, foto: null });
     expect(removedOptional.body.data.telefone).toBeNull();
     expect(removedOptional.body.data.foto).toBeNull();
@@ -229,6 +241,7 @@ describe("Prática — User V2 e coexistência", () => {
     const address = email();
     const response = await request(app)
       .patch(`/v2/users/${user.id}`)
+      .set(adminAuth)
       .send({ email: address });
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
@@ -249,7 +262,9 @@ describe("Prática — User V2 e coexistência", () => {
 
   it("adapta o retorno de DELETE de um usuário legado livre", async () => {
     const user = await createV1({ nome: "Madonna", papel: "ADMIN" });
-    const response = await request(app).delete(`/v2/users/${user.id}`);
+    const response = await request(app)
+      .delete(`/v2/users/${user.id}`)
+      .set(adminAuth);
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
       id: user.id,
@@ -268,6 +283,7 @@ describe("Prática — User V2 e coexistência", () => {
     expect(found.body.data.sobrenome).toBeNull();
     const updated = await request(app)
       .patch(`/v2/users/${v1.id}`)
+      .set(adminAuth)
       .send({ primeiroNome: "Cher" });
     expect(updated.status).toBe(200);
     const persisted = await prisma.user.findUnique({ where: { id: v1.id } });
@@ -294,19 +310,23 @@ describe("Prática — User V2 e coexistência", () => {
     expectError(await createV2(invalid), 400, "VALIDATION_ERROR");
     const patch = await request(app)
       .patch(`/v2/users/${fixture.id}`)
+      .set(adminAuth)
       .send(invalid);
     expectError(patch, 400, "VALIDATION_ERROR");
   });
 
   it("rejeita POST incompleto e PATCH vazio", async () => {
     expectError(
-      await request(app).post("/v2/users").send({}),
+      await request(app).post("/v2/users").set(adminAuth).send({}),
       400,
       "VALIDATION_ERROR",
     );
     const fixture = await createV1();
     expectError(
-      await request(app).patch(`/v2/users/${fixture.id}`).send({}),
+      await request(app)
+        .patch(`/v2/users/${fixture.id}`)
+        .set(adminAuth)
+        .send({}),
       400,
       "VALIDATION_ERROR",
     );
@@ -319,14 +339,14 @@ describe("Prática — User V2 e coexistência", () => {
       const fixture = await createV1();
       await prisma.user.delete({ where: { id: fixture.id } });
       for (const id of ["abc", "0", "-1", "1.5", "2147483648"]) {
-        const invalid = await agent[method](`/v2/users/${id}`).send(
-          method === "patch" ? { primeiroNome: "Novo" } : undefined,
-        );
+        const invalid = await agent[method](`/v2/users/${id}`)
+          .set(adminAuth)
+          .send(method === "patch" ? { primeiroNome: "Novo" } : undefined);
         expectError(invalid, 400, "VALIDATION_ERROR");
       }
-      const missing = await agent[method](`/v2/users/${fixture.id}`).send(
-        method === "patch" ? { primeiroNome: "Novo" } : undefined,
-      );
+      const missing = await agent[method](`/v2/users/${fixture.id}`)
+        .set(adminAuth)
+        .send(method === "patch" ? { primeiroNome: "Novo" } : undefined);
       expectError(missing, 404, "NOT_FOUND");
       expect(missing.body.error.message).toContain("Usuário com ID");
     },
@@ -344,6 +364,7 @@ describe("Prática — User V2 e coexistência", () => {
     expectError(
       await request(app)
         .patch(`/v2/users/${second.body.data.id}`)
+        .set(adminAuth)
         .send({ email: first.email }),
       409,
       "CONFLICT",
@@ -357,13 +378,16 @@ describe("Prática — User V2 e coexistência", () => {
     });
     subjectIds.push(subject.id);
     expectError(
-      await request(app).delete(`/v2/users/${fixture.id}`),
+      await request(app).delete(`/v2/users/${fixture.id}`).set(adminAuth),
       409,
       "CONFLICT",
     );
     const free = await createV2();
     expect(free.status).toBe(201);
-    await request(app).delete(`/v2/users/${free.body.data.id}`).expect(200);
+    await request(app)
+      .delete(`/v2/users/${free.body.data.id}`)
+      .set(adminAuth)
+      .expect(200);
     expectError(
       await request(app).get(`/v1/users/${free.body.data.id}`),
       404,

@@ -1,6 +1,8 @@
 // ADICIONADO: valida somente o contrato V2, sem editar o schema HTTP da V1.
 import { z } from "zod";
 import { positiveIdSchema } from "../../../schemas/idSchema.js";
+// ADICIONADO (aula 11): mesma regra de senha do cadastro público.
+import { senhaSchema } from "./authSchema.js";
 
 const phoneSchema = z
   .string()
@@ -41,15 +43,18 @@ export const createUserV2Schema = z
     tipoUsuario: optionalV2Fields.tipoUsuario.optional(),
     telefone: optionalV2Fields.telefone,
     foto: optionalV2Fields.foto,
+    // ADICIONADO (aula 11): o ADMIN pode definir a senha inicial do usuário.
+    senha: senhaSchema.optional(),
   })
   .strict();
 
-export const updateUserV2FieldsSchema = z.object(optionalV2Fields).strict();
-
-export const updateUserV2Schema = updateUserV2FieldsSchema.refine(
-  (data) => Object.keys(data).length > 0,
-  { message: "Envie pelo menos um campo para atualização" },
-);
+/** Schema para PATCH /v2/users/:id. */
+export const updateUserV2Schema = z
+  .object(optionalV2Fields)
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "Envie pelo menos um campo para atualização",
+  });
 
 /** Schema para parâmetros :id positivos. */
 export const idParamSchema = z.object({ id: positiveIdSchema });

@@ -29,6 +29,7 @@ model User {
   email        String       @unique
   foto         String?
   papel        Papel        @default(PROFESSOR)
+  senha        String?
   
   // ADICIONADO: campos V2 anuláveis; não remover nome/papel nem preencher legado.
   primeiroNome String?      @map("primeiro_nome")

@@ -1,8 +1,17 @@
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { randomUUID } from "node:crypto";
 import app from "../src/app.js";
 import prisma from "../src/config/database.js";
+// ADICIONADO (aula 11): as escritas na V2 passam a exigir token de ADMIN.
+import { createAuthUser, removeAuthUsers } from "./helpers/auth.js";
+
+// ADICIONADO (aula 11): um ADMIN por arquivo, criado direto no banco e removido ao final.
+let adminAuth;
+beforeAll(async () => {
+  ({ auth: adminAuth } = await createAuthUser({ papel: "ADMIN" }));
+});
+afterAll(removeAuthUsers);
 
 // Cada item descreve o que a documentação final precisa conter, nas duas branches.
 const practiceOperations = [
@@ -247,6 +256,7 @@ describe("Prática — documentação OpenAPI publicada", () => {
   it("descreve exatamente os campos devolvidos por GET /v2/users/{id}", async () => {
     const created = await request(app)
       .post("/v2/users")
+      .set(adminAuth)
       .send({
         primeiroNome: "Grace",
         sobrenome: "Hopper",

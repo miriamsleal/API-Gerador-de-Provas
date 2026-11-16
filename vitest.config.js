@@ -12,7 +12,15 @@ if (!process.env.TEST_DATABASE_URL) {
 export default defineConfig({
   test: {
     environment: "node",
-    env: { DATABASE_URL: process.env.TEST_DATABASE_URL },
+    env: {
+      DATABASE_URL: process.env.TEST_DATABASE_URL,
+      // ADICIONADO (aula 11): valores exclusivos de teste, sem relação com segredos reais.
+      JWT_SECRET: "segredo-somente-para-testes-0123456789abcdef",
+      JWT_EXPIRES_IN: "15m",
+      // Custo mínimo do bcrypt: os testes medem comportamento, não resistência.
+      BCRYPT_SALT_ROUNDS: "4",
+      CORS_ORIGINS: "http://localhost:5173",
+    },
     fileParallelism: false,
     setupFiles: ["./tests/setup.js"],
     coverage: {

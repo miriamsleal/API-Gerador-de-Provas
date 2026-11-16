@@ -1,5 +1,9 @@
 //src/app.js
 import express from "express";
+// ADICIONADO (aula 11): headers de segurança HTTP e política de CORS.
+import helmet from "helmet";
+import corsConfig from "./config/cors.js";
+// ADICIONADO: interface Swagger UI e especificação gerada pelo swagger-jsdoc.
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
 import prisma from "./config/database.js";
@@ -10,8 +14,13 @@ import errorHandler, { notFoundHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
 
+// ADICIONADO (aula 11): antes de tudo, para que toda resposta (inclusive erros) receba os headers.
+app.use(helmet());
+// ADICIONADO (aula 11): responde ao preflight antes das rotas e do parser de JSON.
+app.use(corsConfig);
 app.use(express.json({ limit: "100kb" }));
 
+// ADICIONADO: o mesmo objeto alimenta o JSON e a interface; nada é duplicado.
 app.get("/api-docs.json", (_req, res) => {
   res.status(200).json(swaggerSpec);
 });
@@ -24,6 +33,7 @@ app.use(
   }),
 );
 
+// ADICIONADO: schema e operação de /health; as respostas 200 e 503 têm o mesmo formato.
 /**
  * @swagger
  * components:
@@ -83,7 +93,6 @@ app.use(
  *             schema:
  *               $ref: '#/components/schemas/HealthResponse'
  */
-
 /** Health check: preserva o contrato de monitoramento 200/503 da Aula 05. */
 app.get("/health", async (_req, res) => {
   try {

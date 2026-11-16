@@ -9,8 +9,9 @@ const definition = {
   info: {
     title: "API do Gerador de Provas",
     version: "1.0.0",
+    // MODIFICADO (aula 11): a descrição passa a citar as rotas de autenticação.
     description:
-      "Documentação interativa das rotas de saúde e de usuários das versões V1 e V2.",
+      "Documentação interativa das rotas de saúde, de autenticação e de usuários das versões V1 e V2.",
   },
   // "/" faz o Try it out usar o mesmo endereço e porta que serviram a página.
   servers: [
@@ -20,6 +21,11 @@ const definition = {
     {
       name: "Health",
       description: "Disponibilidade da API e da conexão com o banco",
+    },
+    // ADICIONADO (aula 11): grupo das rotas de cadastro, login e usuário autenticado.
+    {
+      name: "Autenticação",
+      description: "Cadastro, login e usuário dono do token JWT",
     },
     {
       name: "Usuários V1",
@@ -31,6 +37,15 @@ const definition = {
     },
   ],
   components: {
+    // ADICIONADO (aula 11): habilita o botão Authorize; operações o referenciam em security.
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+        description: "Token obtido em POST /v2/auth/login ou /v2/auth/register",
+      },
+    },
     parameters: {
       UserId: {
         in: "path",
@@ -85,6 +100,32 @@ const definition = {
       },
       NotFound: {
         description: "Usuário não encontrado (NOT_FOUND)",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/ErrorResponse" },
+          },
+        },
+      },
+      // ADICIONADO (aula 11): respostas comuns das rotas protegidas.
+      Unauthorized: {
+        description:
+          "Token ausente, malformado, inválido ou expirado (UNAUTHORIZED)",
+        headers: {
+          "WWW-Authenticate": {
+            description:
+              "Presente nas rotas protegidas: indica o esquema Bearer",
+            schema: { type: "string" },
+          },
+        },
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/ErrorResponse" },
+          },
+        },
+      },
+      Forbidden: {
+        description:
+          "Usuário autenticado sem permissão para a ação (FORBIDDEN)",
         content: {
           "application/json": {
             schema: { $ref: "#/components/schemas/ErrorResponse" },
